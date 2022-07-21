@@ -1,22 +1,18 @@
 package system.ris;
 
 import static system.ris.App.ds;
-import static system.ris.App.url;
 import datastorage.Appointment;
 import datastorage.User;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.collections.FXCollections;
@@ -31,7 +27,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -42,49 +37,51 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import javafx.util.Callback;
-import org.postgresql.ds.PGSimpleDataSource;
 
 public class Technician extends Stage {
-    //Navbar
+//<editor-fold>    
 
+    //Navbar
     HBox navbar = new HBox();
     Label username = new Label("Logged In as Technician: " + App.user.getFullName());
     ImageView pfp = new ImageView(App.user.getPfp());
     Button logOut = new Button("Log Out");
-
     //End Navbar
-    //table
+    
+    //Table
     TableView appointmentsTable = new TableView();
     VBox tableContainer = new VBox(appointmentsTable);
-    //
+    
     //Scene
     BorderPane main = new BorderPane();
     Scene scene = new Scene(main);
-
     //End Scene
+
+    //Search Bar
     private FilteredList<Appointment> flAppointment;
     ChoiceBox<String> choiceBox = new ChoiceBox();
     TextField search = new TextField("Search Appointments");
+    
+    //Container
     HBox searchContainer = new HBox(choiceBox, search);
 
     private final FileChooser fileChooser = new FileChooser();
 
+//</editor-fold>
+    
+    /*
+        Technician Constructor.
+        Creates and populates the Technician Page
+     */
     public Technician() {
         this.setTitle("RIS - Radiology Information System (Technician)");
+        
         //Navbar
         navbar.setAlignment(Pos.TOP_RIGHT);
         logOut.setPrefHeight(30);
-        logOut.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent e) {
-                logOut();
-            }
-        });
         pfp.setPreserveRatio(true);
         pfp.setFitHeight(38);
         username.setId("navbar");
@@ -99,6 +96,7 @@ public class Technician extends Stage {
         createTableAppointments();
         populateTable();
         //End Center
+        
         //Searchbar Structure
         tableContainer.getChildren().add(searchContainer);
         searchContainer.setAlignment(Pos.TOP_RIGHT);
@@ -124,11 +122,38 @@ public class Technician extends Stage {
         });
         //End Searchbar Structure
 
+        //Buttons
+        logOut.setOnAction((ActionEvent e) -> {
+            logOut();
+        });
+        
         //Set Scene and Structure
         scene.getStylesheets().add("file:stylesheet.css");
         this.setScene(scene);
+        //End Scene
     }
 
+    /*
+        Logout
+     */
+    private void logOut() {
+        App.user = new User();
+        Stage x = new Login();
+        x.show();
+        x.setMaximized(true);
+        this.close();
+    }
+
+    /*
+        User Info Page
+     */
+    private void userInfo() {
+        Stage x = new UserInfo();
+        x.show();
+        x.setMaximized(true);
+        this.close();
+    }
+    
     private void createTableAppointments() {
         //All of the Columns
         TableColumn patientIDCol = new TableColumn("Patient ID");
@@ -154,13 +179,12 @@ public class Technician extends Stage {
 //        appointmentsTable.setStyle("-fx-background-color: #25A18E; -fx-text-fill: WHITE; ");
         //Together again
         appointmentsTable.getColumns().addAll(patientIDCol, fullNameCol, timeCol, orderIDCol, statusCol, updateStatusCol);
-        //Add Status Update Column:
     }
 
     private void populateTable() {
         appointmentsTable.getItems().clear();
+        
         //Connect to database
-
         String sql = "Select appt_id, patient_id, patients.full_name, time, statusCode.status"
                 + " FROM appointments"
                 + " INNER JOIN statusCode ON appointments.statusCode = statusCode.statusID"
@@ -171,11 +195,10 @@ public class Technician extends Stage {
         try {
 
             Connection conn = ds.getConnection();
-
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-            //
-            List<Appointment> list = new ArrayList<Appointment>();
+            
+            List<Appointment> list = new ArrayList<>();
 
             while (rs.next()) {
                 //What I receieve:  apptId, patientID, fullname, time, address, insurance, referral, status, order
@@ -183,74 +206,57 @@ public class Technician extends Stage {
                 appt.setFullName(rs.getString("full_name"));
                 list.add(appt);
             }
+            
             for (Appointment z : list) {
                 if (z.getStatus().contains("recieved") || z.getStatus().contains("received")) {
                     z.placeholder.setText("Check In");
-                    z.placeholder.setOnAction(new EventHandler<ActionEvent>() {
-                        @Override
-                        public void handle(ActionEvent e) {
-                            techPageTwo(z.getPatientID(), z.getApptID(), z.getFullName(), z.getOrder());
-                        }
+                    z.placeholder.setOnAction((ActionEvent e) -> {
+                        techPageTwo(z.getPatientID(), z.getApptID(), z.getFullName(), z.getOrder());
                     });
                 } else {
                     z.placeholder.setText("Patient not Received yet");
                     z.placeholder.setId("cancel");
                 }
             }
+            
             flAppointment = new FilteredList(FXCollections.observableList(list), p -> true);
             appointmentsTable.getItems().addAll(flAppointment);
-            //
+            
             rs.close();
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
     }
 
     private String getPatOrders(String patientID, String aInt) {
-
         String sql = "Select orderCodes.orders "
                 + " FROM appointmentsOrdersConnector "
                 + " INNER JOIN orderCodes ON appointmentsOrdersConnector.orderCodeID = orderCodes.orderID "
                 + " WHERE apptID = '" + aInt + "';";
 
         String value = "";
+        
         try {
 
             Connection conn = ds.getConnection();
-
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-            //
 
             while (rs.next()) {
-
                 value += rs.getString("orders") + ", ";
             }
-            //
+            
             rs.close();
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
         return value;
-    }
-
-    private void logOut() {
-        App.user = new User();
-        Stage x = new Login();
-        x.show();
-        x.setMaximized(true);
-        this.close();
-    }
-
-    private void userInfo() {
-        Stage x = new UserInfo();
-        x.show();
-        x.setMaximized(true);
-        this.close();
     }
 
     private void techPageOne() {
@@ -279,39 +285,29 @@ public class Technician extends Stage {
         buttonContainer.setSpacing(25);
         container.getChildren().addAll(patInfo, buttonContainer);
         main.setCenter(container);
+        
         //Set Size of Every button in buttonContainer
         complete.setPrefSize(200, 100);
         cancel.setPrefSize(200, 100);
         addImg.setPrefSize(200, 100);
-        //
-        cancel.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent e) {
-                populateTable();
-                main.setCenter(tableContainer);
-            }
+        
+        cancel.setOnAction((ActionEvent e) -> {
+            populateTable();
+            main.setCenter(tableContainer);
         });
-
-        addImg.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent t) {
-                openFile(patID, apptId);
-
-            }
+        addImg.setOnAction((ActionEvent t) -> {
+            openFile(patID, apptId);
         });
-        complete.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent t) {
-                completeOrder(patID, apptId, order);
-            }
+        complete.setOnAction((ActionEvent t) -> {
+            completeOrder(patID, apptId, order);
         });
-
     }
 
     private void openFile(String patID, String apptId) {
         File file = fileChooser.showOpenDialog(this);
         if (file != null) {
             try {
+                
                 Image img = new Image(new FileInputStream(file));
                 Stage x = new Stage();
                 x.initOwner(this);
@@ -334,19 +330,14 @@ public class Technician extends Stage {
                 x.setScene(new Scene(y));
                 x.show();
 
-                cancel.setOnAction(new EventHandler<ActionEvent>() {
-                    @Override
-                    public void handle(ActionEvent e) {
-                        x.close();
-                    }
+                cancel.setOnAction((ActionEvent e) -> {
+                    x.close();
                 });
-                confirm.setOnAction(new EventHandler<ActionEvent>() {
-                    @Override
-                    public void handle(ActionEvent e) {
-                        addImgToDatabase(file, patID, apptId);
-                        x.close();
-                    }
+                confirm.setOnAction((ActionEvent e) -> {
+                    addImgToDatabase(file, patID, apptId);
+                    x.close();
                 });
+                
             } catch (FileNotFoundException ex) {
                 Logger.getLogger(Technician.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -355,13 +346,13 @@ public class Technician extends Stage {
 
     private void addImgToDatabase(File file, String patID, String apptId) {
         try {
+            
             FileInputStream temp = new FileInputStream(file);
 
             String sql = "INSERT INTO images (patientID, apptID, image) VALUES (?, ?, ?);";
             try {
 
                 Connection conn = ds.getConnection();
-
                 PreparedStatement pstmt = conn.prepareStatement(sql);
                 pstmt.setString(1, patID);
                 pstmt.setString(2, apptId);
@@ -369,9 +360,11 @@ public class Technician extends Stage {
                 pstmt.executeUpdate();
                 pstmt.close();
                 conn.close();
+                
             } catch (SQLException e) {
                 System.out.println(e.getMessage());
             }
+            
         } catch (FileNotFoundException ex) {
             Logger.getLogger(Technician.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -388,8 +381,9 @@ public class Technician extends Stage {
         VBox imgContainer = new VBox();
 
         ArrayList<Image> list = retrieveUploadedImages(patID, apptId);
-        ArrayList<HBox> hbox = new ArrayList<HBox>();
+        ArrayList<HBox> hbox = new ArrayList<>();
         boolean emptyImages = false;
+        
         if (list.isEmpty()) {
             System.out.println("Error, image list is empty");
             emptyImages = true;
@@ -428,8 +422,8 @@ public class Technician extends Stage {
             imgContainer.getChildren().add(temp);
         }
         ScrollPane s1 = new ScrollPane(imgContainer);
-        //
         //End Images
+        
         Button confirm = new Button("Confirm");
         confirm.setId("complete");
         Button cancel = new Button("Cancel");
@@ -442,41 +436,29 @@ public class Technician extends Stage {
         x.setScene(new Scene(y));
         x.show();
 
-        cancel.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent e) {
-                x.close();
-            }
+        cancel.setOnAction((ActionEvent e) -> {
+            x.close();
         });
         if (!emptyImages) {
-            confirm.setOnAction(new EventHandler<ActionEvent>() {
-                @Override
-                public void handle(ActionEvent e) {
-                    updateAppointmentStatus(patID, apptId);
-                    x.close();
-                    techPageOne();
-                }
-
+            confirm.setOnAction((ActionEvent e) -> {
+                updateAppointmentStatus(patID, apptId);
+                x.close();
+                techPageOne();
             });
         } else {
-            confirm.setOnAction(new EventHandler<ActionEvent>() {
-                @Override
-                public void handle(ActionEvent e) {
-                    Alert a = new Alert(Alert.AlertType.INFORMATION);
-                    a.setTitle("Error");
-                    a.setHeaderText("Try Again");
-                    a.setContentText("Please enter more images. \n");
-                    a.show();
-                }
+            confirm.setOnAction((ActionEvent e) -> {
+                Alert a = new Alert(Alert.AlertType.INFORMATION);
+                a.setTitle("Error");
+                a.setHeaderText("Try Again");
+                a.setContentText("Please enter more images. \n");
+                a.show();
             });
-
         }
-
     }
 
     private ArrayList<Image> retrieveUploadedImages(String patID, String apptId) {
         //Connect to database
-        ArrayList<Image> list = new ArrayList<Image>();
+        ArrayList<Image> list = new ArrayList<>();
 
         String sql = "SELECT *"
                 + " FROM images"
@@ -486,19 +468,18 @@ public class Technician extends Stage {
         try {
 
             Connection conn = ds.getConnection();
-
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-            //
+            
             while (rs.next()) {
                 //What I receieve:  image
                 list.add(new Image(rs.getBinaryStream("image")));
-//                System.out.println(rs.getBinaryStream("image"));
             }
-            //
+            
             rs.close();
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
@@ -506,20 +487,21 @@ public class Technician extends Stage {
     }
 
     private void updateAppointmentStatus(String patID, String apptId) {
-
         String sql = "UPDATE appointments"
                 + " SET statusCode = 4"
                 + " WHERE appt_id = '" + apptId + "';";
+        
         try {
 
             Connection conn = ds.getConnection();
-
             Statement stmt = conn.createStatement();
             stmt.execute(sql);
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
     }
+
 }

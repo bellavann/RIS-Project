@@ -35,46 +35,45 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 public class UserInfo extends Stage {
-
+//<editor-fold>
+    
     //Navbar
     private final int IMAGES_PER_ROW = 6;
     HBox navbar = new HBox();
     Label usernameLabel = new Label("Logged In as: " + App.user.getFullName());
     ImageView pfp = new ImageView(App.user.getPfp());
     Button logOut = new Button("Log Out");
-
     //End Navbar
-    //table
-    //
+
     //Scene
     BorderPane main = new BorderPane();
     Scene scene = new Scene(main);
-
     //End Scene
-    List<File> fileList = new ArrayList<File>();
+    
+    List<File> fileList = new ArrayList<>();
 
+//</editor-fold>
+    
+    /*
+        UserInfo Constructor.
+        Creates and populates the User Page
+     */
     public UserInfo() {
         this.setTitle("RIS - Radiology Information System (Profile)");
+        
         //Navbar
         navbar.setAlignment(Pos.TOP_RIGHT);
         logOut.setPrefHeight(30);
-        logOut.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent e) {
-                logOut();
-            }
-        });
-        usernameLabel.setId("navbar");
-        usernameLabel.setOnMouseClicked(eh -> userInfo());
-
-        navbar.getChildren().addAll(usernameLabel, pfp, logOut);
         pfp.setPreserveRatio(true);
         pfp.setFitHeight(38);
+        usernameLabel.setId("navbar");
+        usernameLabel.setOnMouseClicked(eh -> userInfo());
+        navbar.getChildren().addAll(usernameLabel, pfp, logOut);
         navbar.setStyle("-fx-background-color: #2f4f4f; -fx-spacing: 15;");
         main.setTop(navbar);
-        //End navbar
+        //End Navbar
+        
         //Center
-
         Label userIDTxt = new Label("ID:");
         TextField userID = new TextField(App.user.getUserID() + "");
         userID.setEditable(false);
@@ -115,8 +114,7 @@ public class UserInfo extends Stage {
         VBox container = new VBox(c5, c6, btnContainer);
         container.setPadding(new Insets(10));
         main.setCenter(container);
-//
-        //
+
         populateImgList();
 
         VBox imgContainer = new VBox();
@@ -133,6 +131,7 @@ public class UserInfo extends Stage {
         for (File x : fileList) {
             FileInputStream te = null;
             try {
+                
                 if (counter > IMAGES_PER_ROW) {
                     hboxCounter++;
                     counter = 0;
@@ -144,24 +143,22 @@ public class UserInfo extends Stage {
                 temp.setFitHeight(150);
                 Label label = new Label(x.getName());
                 VBox temp1 = new VBox(temp, label);
-                //
+                
                 temp1.setId("navbar");
-                temp1.setOnMouseClicked(new EventHandler<MouseEvent>() {
-                    @Override
-                    public void handle(MouseEvent eh) {
-                        String sql = "UPDATE users SET pfp = '" + label.getText() + "' WHERE user_id = '" + App.user.getUserID() + "';";
-                        App.executeSQLStatement(sql);
-                        App.user.setPfp(tem);
-                        navbar.getChildren().removeAll(pfp, logOut);
-                        pfp = new ImageView(tem);
-                        pfp.setPreserveRatio(true);
-                        pfp.setFitHeight(38);
-                        navbar.getChildren().addAll(pfp, logOut);
-                    }
+                temp1.setOnMouseClicked((MouseEvent eh) -> {
+                    String sql = "UPDATE users SET pfp = '" + label.getText() + "' WHERE user_id = '" + App.user.getUserID() + "';";
+                    App.executeSQLStatement(sql);
+                    App.user.setPfp(tem);
+                    navbar.getChildren().removeAll(pfp, logOut);
+                    pfp = new ImageView(tem);
+                    pfp.setPreserveRatio(true);
+                    pfp.setFitHeight(38);
+                    navbar.getChildren().addAll(pfp, logOut);
                 });
-                //
+                
                 hboxList.get(hboxCounter).getChildren().add(temp1);
                 counter++;
+                
             } catch (FileNotFoundException ex) {
                 Logger.getLogger(UserInfo.class.getName()).log(Level.SEVERE, null, ex);
             } finally {
@@ -181,47 +178,51 @@ public class UserInfo extends Stage {
             temp.setPadding(new Insets(10));
             temp.setSpacing(10);
             imgContainer.getChildren().add(temp);
-
         }
         s1.setContent(imgContainer);
-        //
-        //
+
         goBack.setOnAction(eh -> goBack());
 
-        confirm.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent eh) {
-                if (!InputValidation.validateEmail(email.getText())) {
+        confirm.setOnAction((ActionEvent eh) -> {
+            if (!InputValidation.validateEmail(email.getText())) {
+                return;
+            }
+            
+            if (password.getText().isBlank()) {
+                String sql = "UPDATE users SET email = '" + email.getText() + "' WHERE user_id = '" + App.user.getUserID() + "';";
+                App.executeSQLStatement(sql);
+                goBack();
+            } else if (password.getText().equals(passwordConfirm.getText())) {
+                if (!InputValidation.validatePassword(password.getText())) {
                     return;
                 }
-
-                if (password.getText().isBlank()) {
-                    String sql = "UPDATE users SET email = '" + email.getText() + "' WHERE user_id = '" + App.user.getUserID() + "';";
-                    App.executeSQLStatement(sql);
-                    goBack();
-                } else if (password.getText().equals(passwordConfirm.getText())) {
-                    if (!InputValidation.validatePassword(password.getText())) {
-                        return;
-                    }
-                    String sql = "UPDATE users SET email = '" + email.getText() + "', password = '" + password.getText() + "' WHERE user_id = '" + App.user.getUserID() + "';";
-                    App.executeSQLStatement(sql);
-                    goBack();
-                } else {
-                    Alert a = new Alert(Alert.AlertType.INFORMATION);
-                    a.setTitle("Error");
-                    a.setHeaderText("Try Again");
-                    a.setContentText("Please check both passwords to make sure they are the same. \n");
-                    a.show();
-                }
+                String sql = "UPDATE users SET email = '" + email.getText() + "', password = '" + password.getText() + "' WHERE user_id = '" + App.user.getUserID() + "';";
+                App.executeSQLStatement(sql);
+                goBack();
+            } else {
+                Alert a = new Alert(Alert.AlertType.INFORMATION);
+                a.setTitle("Error");
+                a.setHeaderText("Try Again");
+                a.setContentText("Please check both passwords to make sure they are the same. \n");
+                a.show();
             }
         });
-
         //End Center
+        
+        //Buttons
+        logOut.setOnAction((ActionEvent e) -> {
+            logOut();
+        });
+        
         //Set Scene and Structure
         scene.getStylesheets().add("file:stylesheet.css");
         this.setScene(scene);
+        //End Scene
     }
 
+    /*
+        Logout
+     */
     private void logOut() {
         App.user = new User();
         Stage x = new Login();
@@ -230,49 +231,75 @@ public class UserInfo extends Stage {
         this.close();
     }
 
-    private void goBack() {
-        if (App.user.getRole() == 2) {
-            //Receptionist
-            Stage x = new Receptionist();
-            x.show();
-            x.setMaximized(true);
-            this.hide();
-        } else if (App.user.getRole() == 3) {
-            //technician
-            Stage x = new Technician();
-            x.show();
-            x.setMaximized(true);
-            this.hide();
-        } else if (App.user.getRole() == 4) {
-            //radiologist
-            Stage x = new Rad();
-            x.show();
-            x.setMaximized(true);
-            this.hide();
-        } else if (App.user.getRole() == 5) {
-            //Referral Doctor
-            Stage x = new ReferralDoctor();
-            x.show();
-            x.setMaximized(true);
-            this.hide();
-        } else if (App.user.getRole() == 6) {
-            Stage x = new Billing();
-            x.show();
-            x.setMaximized(true);
-            this.hide();
-        } else if (App.user.getRole() == 1) {
-            Stage x = new Administrator();
-            x.show();
-            x.setMaximized(true);
-            this.hide();
-        }
-    }
-
+    /*
+        User Info Page
+     */
     private void userInfo() {
         Stage x = new UserInfo();
         x.show();
         x.setMaximized(true);
         this.close();
+    }
+
+    private void goBack() {
+        switch (App.user.getRole()) {
+            case 2:
+                {
+                    //Receptionist
+                    Stage x = new Receptionist();
+                    x.show();
+                    x.setMaximized(true);
+                    this.hide();
+                    break;
+                }
+            case 3:
+                {
+                    //Technician
+                    Stage x = new Technician();
+                    x.show();
+                    x.setMaximized(true);
+                    this.hide();
+                    break;
+                }
+            case 4:
+                {
+                    //Radiologist
+                    Stage x = new Rad();
+                    x.show();
+                    x.setMaximized(true);
+                    this.hide();
+                    break;
+                }
+            case 5:
+                {
+                    //Referral Doctor
+                    Stage x = new ReferralDoctor();
+                    x.show();
+                    x.setMaximized(true);
+                    this.hide();
+                    break;
+                }
+            case 6:
+                {
+                    //Billing
+                    Stage x = new Billing();
+                    x.show();
+                    x.setMaximized(true);
+                    this.hide();
+                    break;
+                }
+            case 1:
+                {
+                    //Administrator
+                    Stage x = new Administrator();
+                    x.show();
+                    x.setMaximized(true);
+                    this.hide();
+                    break;
+                }
+            default:
+                break;
+        }
     }
 
     private void populateImgList() {
@@ -282,7 +309,6 @@ public class UserInfo extends Stage {
             fileList = Collections.emptyList();
         }
         fileList = Arrays.stream(Objects.requireNonNull(dir.listFiles())).collect(Collectors.toList());
-
     }
 
 }

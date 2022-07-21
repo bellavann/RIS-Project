@@ -41,7 +41,8 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 public class Administrator extends Stage {
-
+//<editor-fold>
+    
     //Navbar
     HBox navbar = new HBox();
     Label username = new Label("Logged In as Administrator: " + App.user.getFullName());
@@ -54,45 +55,42 @@ public class Administrator extends Stage {
     Button logOut = new Button("Log Out");
     //End Navbar
 
-    //table
+    //Table
     TableView table = new TableView();
     VBox usersContainer = new VBox();
     VBox patientsContainer = new VBox();
     VBox appointmentsContainer = new VBox();
     VBox modalitiesContainer = new VBox();
     VBox patientAlertsContainer = new VBox();
-    //
+    
     //Scene
     BorderPane main = new BorderPane();
     Scene scene = new Scene(main);
-
     //End Scene
+    
     private FilteredList<User> flUsers;
     private FilteredList<Patient> flPatient;
     private FilteredList<Appointment> flAppointment;
 
+//</editor-fold>
+    
     /*
         Administrator Constructor.
         Creates and populates the Administrator Page
      */
     public Administrator() {
         this.setTitle("RIS - Radiology Information System (Administrator)");
+        
         //Navbar
         navbar.setAlignment(Pos.TOP_RIGHT);
         logOut.setPrefHeight(30);
-        logOut.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent e) {
-                logOut();
-            }
-        });
         pfp.setPreserveRatio(true);
         pfp.setFitHeight(38);
         username.setId("navbar");
         username.setOnMouseClicked(eh -> userInfo());
         HBox navButtons = new HBox(users, patients, appointments, modalities, patientAlerts);
         navButtons.setAlignment(Pos.TOP_LEFT);
-//        navButtons.setSpacing(10);
+        navButtons.setSpacing(10);
         HBox.setHgrow(navButtons, Priority.ALWAYS);
         navbar.getChildren().addAll(navButtons, username, pfp, logOut);
         navbar.setStyle("-fx-background-color: #2f4f4f; -fx-spacing: 15;");
@@ -103,7 +101,7 @@ public class Administrator extends Stage {
         appointments.setId("navbar");
         modalities.setId("navbar");
         patientAlerts.setId("navbar");
-        //End navbar
+        //End Navbar
 
         //Center
         Label tutorial = new Label("Select one of the buttons above to get started!");
@@ -113,11 +111,17 @@ public class Administrator extends Stage {
         appointments.setOnMouseClicked(eh -> appointmentsPageView());
         modalities.setOnMouseClicked(eh -> modalitiesPageView());
         patientAlerts.setOnMouseClicked(eh -> patientAlertsPageView());
-
         //End Center
+        
+        //Buttons
+        logOut.setOnAction((ActionEvent e) -> {
+            logOut();
+        });
+        
         //Set Scene and Structure
         scene.getStylesheets().add("file:stylesheet.css");
         this.setScene(scene);
+        //End Scene
     }
 
     /*
@@ -142,85 +146,7 @@ public class Administrator extends Stage {
     }
 
 //<editor-fold defaultstate="collapsed" desc="Users Section">
-    private void createTableUsers() {
-        table.getColumns().clear();
-        //All of the Columns
-        TableColumn pfpCol = new TableColumn("PFP");
-        TableColumn userIDCol = new TableColumn("User ID");
-        TableColumn emailCol = new TableColumn("Email");
-        TableColumn fullNameCol = new TableColumn("Full Name");
-        TableColumn usernameCol = new TableColumn("Username");
-        TableColumn roleCol = new TableColumn("Role");
-        TableColumn enabledCol = new TableColumn("Enabled");
-        TableColumn buttonCol = new TableColumn("Update User");
-
-        //And all of the Value setting
-        pfpCol.setCellValueFactory(new PropertyValueFactory<>("pfpView"));
-        userIDCol.setCellValueFactory(new PropertyValueFactory<>("userID"));
-        emailCol.setCellValueFactory(new PropertyValueFactory<>("email"));
-        fullNameCol.setCellValueFactory(new PropertyValueFactory<>("fullName"));
-        usernameCol.setCellValueFactory(new PropertyValueFactory<>("username"));
-        roleCol.setCellValueFactory(new PropertyValueFactory<>("roleVal"));
-        enabledCol.setCellValueFactory(new PropertyValueFactory<>("enabledLabel"));
-        buttonCol.setCellValueFactory(new PropertyValueFactory<>("placeholder"));
-
-        //Couldn't put all the styling
-        pfpCol.prefWidthProperty().bind(table.widthProperty().multiply(0.03));
-        userIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.09));
-        emailCol.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
-        fullNameCol.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
-        usernameCol.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
-        roleCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
-        enabledCol.prefWidthProperty().bind(table.widthProperty().multiply(0.04));
-        buttonCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
-        table.setStyle("-fx-background-color: #25A18E; -fx-text-fill: WHITE; ");
-        //Together again
-        table.getColumns().addAll(pfpCol, userIDCol, emailCol, fullNameCol, usernameCol, roleCol, enabledCol, buttonCol);
-        //Add Status Update Column:
-    }
-
-    private void populateUsersTable() {
-        table.getItems().clear();
-        //Connect to database
-        String sql = "Select users.user_id, users.email, users.full_name, users.username, users.enabled, users.pfp, roles.role as roleID"
-                + " FROM users "
-                + " INNER JOIN roles ON users.role = roles.roleID "
-                + ";";
-
-        try {
-
-            Connection conn = ds.getConnection();
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery(sql);
-            //
-            List<User> list = new ArrayList<User>();
-
-            while (rs.next()) {
-                //What I receieve:  int userID, String email, String fullName, String username, int role, int enabled
-                User user = new User(rs.getString("user_id"), rs.getString("email"), rs.getString("full_name"), rs.getString("username"), 1, rs.getBoolean("enabled"), rs.getString("roleID"));
-                try {
-                    user.setPfp(new Image(new FileInputStream(App.imagePathDirectory + rs.getString("pfp"))));
-                } catch (FileNotFoundException ex) {
-                    user.setPfp(null);
-                }
-                list.add(user);
-            }
-            for (User z : list) {
-                z.placeholder.setText("Update User");
-                z.placeholder.setOnAction(eh -> updateUser(z));
-            }
-
-            flUsers = new FilteredList(FXCollections.observableList(list), p -> true);
-            table.getItems().addAll(flUsers);
-            //
-            rs.close();
-            stmt.close();
-            conn.close();
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
-    }
-
+    
     private void usersPageView() {
         usersContainer.getChildren().clear();
 
@@ -231,6 +157,7 @@ public class Administrator extends Stage {
         Button addUser = new Button("Add User");
         HBox buttonContainer = new HBox(addUser);
         buttonContainer.setSpacing(10);
+        
         usersContainer.getChildren().addAll(table, buttonContainer);
         usersContainer.setSpacing(10);
         users.setId("selected");
@@ -239,7 +166,6 @@ public class Administrator extends Stage {
         modalities.setId("navbar");
         patientAlerts.setId("navbar");
 
-        //
         //Searchbar Structure
         ChoiceBox<String> choiceBox = new ChoiceBox();
         TextField search = new TextField("Search Users");
@@ -266,12 +192,98 @@ public class Administrator extends Stage {
             table.getItems().clear();
             table.getItems().addAll(flUsers);
         });
+        
         buttonContainer.getChildren().add(searchContainer);
 
-        //
         addUser.setOnAction(eh -> addUser());
     }
+    
+    private void createTableUsers() {
+        table.getColumns().clear();
+        
+        //All of the Columns
+        TableColumn pfpCol = new TableColumn("PFP");
+        TableColumn userIDCol = new TableColumn("User ID");
+        TableColumn emailCol = new TableColumn("Email");
+        TableColumn fullNameCol = new TableColumn("Full Name");
+        TableColumn usernameCol = new TableColumn("Username");
+        TableColumn roleCol = new TableColumn("Role");
+        TableColumn enabledCol = new TableColumn("Enabled");
+        TableColumn buttonCol = new TableColumn("Update User");
 
+        //All of the Value setting
+        pfpCol.setCellValueFactory(new PropertyValueFactory<>("pfpView"));
+        userIDCol.setCellValueFactory(new PropertyValueFactory<>("userID"));
+        emailCol.setCellValueFactory(new PropertyValueFactory<>("email"));
+        fullNameCol.setCellValueFactory(new PropertyValueFactory<>("fullName"));
+        usernameCol.setCellValueFactory(new PropertyValueFactory<>("username"));
+        roleCol.setCellValueFactory(new PropertyValueFactory<>("roleVal"));
+        enabledCol.setCellValueFactory(new PropertyValueFactory<>("enabledLabel"));
+        buttonCol.setCellValueFactory(new PropertyValueFactory<>("placeholder"));
+
+        //Set Column Widths
+        pfpCol.prefWidthProperty().bind(table.widthProperty().multiply(0.03));
+        userIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.09));
+        emailCol.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
+        fullNameCol.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
+        usernameCol.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
+        roleCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
+        enabledCol.prefWidthProperty().bind(table.widthProperty().multiply(0.04));
+        buttonCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
+        
+        table.setStyle("-fx-background-color: #25A18E; -fx-text-fill: WHITE; ");
+        
+        //Add columns to table
+        table.getColumns().addAll(pfpCol, userIDCol, emailCol, fullNameCol, usernameCol, roleCol, enabledCol, buttonCol);
+
+    }
+
+    private void populateUsersTable() {
+        table.getItems().clear();
+        
+        //Connect to database
+        String sql = "Select users.user_id, users.email, users.full_name, users.username, users.enabled, users.pfp, roles.role as roleID"
+                + " FROM users "
+                + " INNER JOIN roles ON users.role = roles.roleID "
+                + ";";
+
+        try {
+
+            Connection conn = ds.getConnection();
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            
+            List<User> list = new ArrayList<>();
+
+            while (rs.next()) {
+                //What I receieve:  int userID, String email, String fullName, String username, int role, int enabled
+                User user = new User(rs.getString("user_id"), rs.getString("email"), rs.getString("full_name"), rs.getString("username"), 1, rs.getBoolean("enabled"), rs.getString("roleID"));
+                try {
+                    user.setPfp(new Image(new FileInputStream(App.imagePathDirectory + rs.getString("pfp"))));
+                } catch (FileNotFoundException ex) {
+                    user.setPfp(null);
+                }
+                list.add(user);
+            }
+            
+            for (User z : list) {
+                z.placeholder.setText("Update User");
+                z.placeholder.setOnAction(eh -> updateUser(z));
+            }
+
+            flUsers = new FilteredList(FXCollections.observableList(list), p -> true);
+            table.getItems().addAll(flUsers);
+            
+            rs.close();
+            stmt.close();
+            conn.close();
+            
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    //On button press, open up a new stage
     private void addUser() {
         Stage x = new Stage();
         x.initOwner(this);
@@ -300,34 +312,30 @@ public class Administrator extends Stage {
         x.setScene(new Scene(y));
         x.show();
 
-        submit.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent eh) {
-                if (!InputValidation.validateName(name.getText())) {
-                    return;
-                }
-                if (!InputValidation.validateEmail(email.getText())) {
-                    return;
-                }
-                if (!InputValidation.validateUsername(username.getText())) {
-                    return;
-                }
-                if (!InputValidation.validatePassword(password.getText())) {
-                    return;
-                }
-
-                insertUserIntoDatabase(email.getText(), name.getText(), username.getText(), password.getText(), role.getValue().toString());
-                usersPageView();
-                x.close();
-
+        submit.setOnAction((ActionEvent eh) -> {
+            if (!InputValidation.validateName(name.getText())) {
+                return;
             }
+            if (!InputValidation.validateEmail(email.getText())) {
+                return;
+            }
+            if (!InputValidation.validateUsername(username.getText())) {
+                return;
+            }
+            if (!InputValidation.validatePassword(password.getText())) {
+                return;
+            }
+            
+            insertUserIntoDatabase(email.getText(), name.getText(), username.getText(), password.getText(), role.getValue().toString());
+            usersPageView();
+            x.close();
         });
     }
 
     private void insertUserIntoDatabase(String email, String name, String username, String password, String role) {
         String sql = "INSERT INTO users(email, full_name, username, password, role) VALUES ('" + email + "','" + name + "','" + username + "','" + password + "', (SELECT roleID FROM roles WHERE role = '" + role + "'));";
+        
         App.executeSQLStatement(sql);
-
     }
 
     private void updateUser(User z) {
@@ -350,13 +358,13 @@ public class Administrator extends Stage {
         HBox buttonContainer = new HBox(updateUserEmail, updateUserPW, disableUser);
         buttonContainer.setSpacing(20);
         Button submit = new Button("Submit");
-        //
+        
         Label txt = new Label("Insert Value Here:");
         TextField input = new TextField("...");
         input.setPrefWidth(200);
         HBox hidden = new HBox(txt, input);
         hidden.setVisible(false);
-        //
+        
         VBox center = new VBox(buttonContainer, hidden, submit);
         center.setSpacing(10);
         center.setAlignment(Pos.CENTER);
@@ -444,8 +452,9 @@ public class Administrator extends Stage {
             }
         });
     }
+
 //</editor-fold>
-//
+
 //<editor-fold defaultstate="collapsed" desc="Patients Section">
 
     private void patientsPageView() {
@@ -488,44 +497,48 @@ public class Administrator extends Stage {
             table.getItems().clear();
             table.getItems().addAll(flPatient);
         });
+        
         patientsContainer.getChildren().add(searchContainer);
-
-        //
-//        addUser.setOnAction(eh -> addUser());
     }
 
     private void createTablePatients() {
         table.getColumns().clear();
+        
         //All of the Columns
         TableColumn patientIDCol = new TableColumn("Patient ID");
         TableColumn fullNameCol = new TableColumn("Full Name");
+        TableColumn usernameCol = new TableColumn("Username");
         TableColumn emailCol = new TableColumn("Email");
         TableColumn DOBCol = new TableColumn("Date of Birth");
         TableColumn insuranceCol = new TableColumn("Insurance");
 
-        //And all of the Value setting
+        //All of the Value setting
         patientIDCol.setCellValueFactory(new PropertyValueFactory<>("patientID"));
         fullNameCol.setCellValueFactory(new PropertyValueFactory<>("fullName"));
+        usernameCol.setCellValueFactory(new PropertyValueFactory<>("username"));
         emailCol.setCellValueFactory(new PropertyValueFactory<>("email"));
         DOBCol.setCellValueFactory(new PropertyValueFactory<>("dob"));
         insuranceCol.setCellValueFactory(new PropertyValueFactory<>("insurance"));
 
-        //Couldn't put the table
+        //Set Column Widths
         patientIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.09));
         fullNameCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
+        usernameCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
         emailCol.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
         DOBCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
         insuranceCol.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
 
         table.setStyle("-fx-background-color: #25A18E; -fx-text-fill: WHITE; ");
-        //back together again
-        table.getColumns().addAll(patientIDCol, fullNameCol, emailCol, DOBCol, insuranceCol);
+        
+        //Add columns to table
+        table.getColumns().addAll(patientIDCol, fullNameCol, usernameCol, emailCol, DOBCol, insuranceCol);
     }
 
     private void populatePatientsTable() {
         table.getItems().clear();
+        
         //Connect to database
-        String sql = "Select patients.patientID, patients.email, patients.full_name, patients.dob, patients.address, patients.insurance"
+        String sql = "Select patients.patientID, patients.email, patients.full_name, patients.username, patients.dob, patients.address, patients.insurance"
                 + " FROM patients"
                 + " "
                 + " ;";
@@ -535,39 +548,37 @@ public class Administrator extends Stage {
             Connection conn = ds.getConnection();
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-            //
-            List<Patient> list = new ArrayList<Patient>();
+            
+            List<Patient> list = new ArrayList<>();
+            
             while (rs.next()) {
-                //What I receieve:  patientID, email, full_name, dob, address, insurance
-                Patient pat = new Patient(rs.getString("patientID"), rs.getString("email"), rs.getString("full_name"), rs.getString("dob"), rs.getString("address"), rs.getString("insurance"));
+                //What I receieve:  patientID, email, full_name, username, dob, address, insurance
+                Patient pat = new Patient(rs.getString("patientID"), rs.getString("email"), rs.getString("full_name"), rs.getString("username"), rs.getString("dob"), rs.getString("address"), rs.getString("insurance"));
                 list.add(pat);
             }
 
             for (Patient z : list) {
                 z.placeholder.setText("Patient Overview");
-                z.placeholder.setOnAction(new EventHandler<ActionEvent>() {
-                    @Override
-                    public void handle(ActionEvent e) {
-
-                    }
-
+                z.placeholder.setOnAction((ActionEvent e) -> {
                 });
             }
 
             flPatient = new FilteredList(FXCollections.observableList(list), p -> true);
             table.getItems().addAll(flPatient);
-            //
+            
             rs.close();
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
     }
 
     //</editor-fold>
-//
+
 //<editor-fold defaultstate="collapsed" desc="Appointments Section">
+    
     private void appointmentsPageView() {
         appointmentsContainer.getChildren().clear();
 
@@ -618,15 +629,16 @@ public class Administrator extends Stage {
 
     private void createTableAppointments() {
         table.getColumns().clear();
-        //Vbox to hold the table
-        //Allow Table to read Appointment class
+        
+        //All of the Columns
         TableColumn apptIDCol = new TableColumn("Appointment ID");
         TableColumn patientIDCol = new TableColumn("Patient ID");
         TableColumn firstNameCol = new TableColumn("Full Name");
         TableColumn timeCol = new TableColumn("Time of Appt.");
         TableColumn orderCol = new TableColumn("Orders Requested");
         TableColumn status = new TableColumn("Status");
-
+        
+        //All of the Value setting
         apptIDCol.setCellValueFactory(new PropertyValueFactory<>("apptID"));
         patientIDCol.setCellValueFactory(new PropertyValueFactory<>("patientID"));
         firstNameCol.setCellValueFactory(new PropertyValueFactory<>("fullName"));
@@ -641,12 +653,14 @@ public class Administrator extends Stage {
         timeCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
         orderCol.prefWidthProperty().bind(table.widthProperty().multiply(0.4));
         status.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
+        
         //Add columns to table
         table.getColumns().addAll(apptIDCol, patientIDCol, firstNameCol, timeCol, orderCol, status);
     }
 
     private void populateTableAppointments() {
         table.getItems().clear();
+        
         //Connect to database
         String sql = "Select appt_id, patient_id, patients.full_name, time, statusCode.status"
                 + " FROM appointments"
@@ -660,8 +674,8 @@ public class Administrator extends Stage {
             Connection conn = ds.getConnection();
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-            //
-            List<Appointment> list = new ArrayList<Appointment>();
+            
+            List<Appointment> list = new ArrayList<>();
 
             while (rs.next()) {
                 //What I receieve:  apptId, patientID, fullname, time, address, insurance, referral, status, order
@@ -672,10 +686,11 @@ public class Administrator extends Stage {
 
             flAppointment = new FilteredList(FXCollections.observableList(list), p -> true);
             table.getItems().addAll(flAppointment);
-            //
+            
             rs.close();
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
@@ -688,21 +703,21 @@ public class Administrator extends Stage {
                 + " WHERE apptID = '" + aInt + "';";
 
         String value = "";
+        
         try {
 
             Connection conn = ds.getConnection();
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-            //
-
+            
             while (rs.next()) {
-
                 value += rs.getString("orders") + ", ";
             }
-            //
+            
             rs.close();
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
@@ -710,8 +725,9 @@ public class Administrator extends Stage {
     }
 
     //</editor-fold>
-//
+
 //<editor-fold defaultstate="collapsed" desc="Modalities Section">
+    
     private void modalitiesPageView() {
         modalitiesContainer.getChildren().clear();
 
@@ -735,29 +751,31 @@ public class Administrator extends Stage {
 
     private void createTableModalities() {
         table.getColumns().clear();
+        
         //All of the Columns
         TableColumn orderIDCol = new TableColumn("Order ID");
         TableColumn orderCol = new TableColumn("Order");
         TableColumn buttonCol = new TableColumn("Delete");
         TableColumn costCol = new TableColumn("Cost");
 
-        //And all of the Value setting
+        //All of the Value setting
         orderIDCol.setCellValueFactory(new PropertyValueFactory<>("orderID"));
         orderCol.setCellValueFactory(new PropertyValueFactory<>("order"));
         buttonCol.setCellValueFactory(new PropertyValueFactory<>("placeholder"));
         costCol.setCellValueFactory(new PropertyValueFactory<>("cost"));
 
-        //Couldn't put all the styling
+        //Set Column Widths
         orderIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.09));
         orderCol.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
         buttonCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
-        //Together again
+       
+        //Add columns to table
         table.getColumns().addAll(orderIDCol, orderCol, costCol, buttonCol);
-        //Add Status Update Column:
     }
 
     private void populateTableModalities() {
         table.getItems().clear();
+        
         //Connect to database
         String sql = "Select * "
                 + " FROM orderCodes "
@@ -769,8 +787,9 @@ public class Administrator extends Stage {
             Connection conn = ds.getConnection();
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-            //
-            List<Order> list = new ArrayList<Order>();
+            
+            List<Order> list = new ArrayList<>();
+            
             while (rs.next()) {
                 //What I receieve:  patientID, email, full_name, dob, address, insurance
                 Order order = new Order(rs.getString("orderID"), rs.getString("orders"));
@@ -781,22 +800,19 @@ public class Administrator extends Stage {
             for (Order z : list) {
                 z.placeholder.setText("Delete");
                 z.placeholder.setId("cancel");
-                z.placeholder.setOnAction(new EventHandler<ActionEvent>() {
-                    @Override
-                    public void handle(ActionEvent e) {
-                        String sql = "DELETE FROM orderCodes WHERE orderID = '" + z.getOrderID() + "' ";
-                        App.executeSQLStatement(sql);
-                        populateTableModalities();
-                    }
+                z.placeholder.setOnAction((ActionEvent e) -> {
+                    String sql1 = "DELETE FROM orderCodes WHERE orderID = '" + z.getOrderID() + "' ";
+                    App.executeSQLStatement(sql1);
+                    populateTableModalities();
                 });
             }
 
-//            fl = new FilteredList(FXCollections.observableList(list), p -> true);
             table.getItems().addAll(list);
-            //
+            
             rs.close();
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
@@ -825,24 +841,21 @@ public class Administrator extends Stage {
         x.setScene(new Scene(y));
         x.show();
 
-        submit.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent eh) {
-                if (!InputValidation.validatePayment(cost.getText())) {
-                    return;
-                }
-                String sql = "INSERT INTO orderCodes(orders,cost) VALUES ('" + order.getText() + "','" + cost.getText() + "') ;";
-                App.executeSQLStatement(sql);
-                populateTableModalities();
-                x.close();
+        submit.setOnAction((ActionEvent eh) -> {
+            if (!InputValidation.validatePayment(cost.getText())) {
+                return;
             }
-
+            String sql = "INSERT INTO orderCodes(orders,cost) VALUES ('" + order.getText() + "','" + cost.getText() + "') ;";
+            App.executeSQLStatement(sql);
+            populateTableModalities();
+            x.close();
         });
     }
 
-    //</editor-fold>
-//
+//</editor-fold>
+
 //<editor-fold defaultstate="collapsed" desc="Patient Alerts Section">
+    
     private void patientAlertsPageView() {
         patientAlertsContainer.getChildren().clear();
 
@@ -860,11 +873,13 @@ public class Administrator extends Stage {
         appointments.setId("navbar");
         modalities.setId("navbar");
         patientAlerts.setId("selected");
+        
         addPatientAlert.setOnAction(eh -> addPatientAlert());
     }
 
     private void createTablePatientAlerts() {
         table.getColumns().clear();
+        
         //All of the Columns
         TableColumn alertIDCol = new TableColumn("ID");
         TableColumn alertCol = new TableColumn("Alert");
@@ -872,26 +887,27 @@ public class Administrator extends Stage {
         TableColumn button1Col = new TableColumn("Add Flag");
         TableColumn buttonCol = new TableColumn("Delete");
 
-        //And all of the Value setting
+        //All of the Value setting
         alertIDCol.setCellValueFactory(new PropertyValueFactory<>("alertID"));
         alertCol.setCellValueFactory(new PropertyValueFactory<>("alert"));
         flagsCol.setCellValueFactory(new PropertyValueFactory<>("flags"));
         button1Col.setCellValueFactory(new PropertyValueFactory<>("placeholder1"));
         buttonCol.setCellValueFactory(new PropertyValueFactory<>("placeholder"));
 
-        //Couldn't put all the styling
+        //Set Column Widths
         alertIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.09));
         alertCol.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
         flagsCol.prefWidthProperty().bind(table.widthProperty().multiply(0.5));
         buttonCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
         button1Col.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
-        //Together again
+        
+        //Add columns to table
         table.getColumns().addAll(alertIDCol, alertCol, flagsCol, button1Col, buttonCol);
-        //Add Status Update Column:
     }
 
     private void populatePatientAlerts() {
         table.getItems().clear();
+        
         //Connect to database
         String sql = "Select patientAlerts.alertID, patientAlerts.alert "
                 + " FROM patientAlerts "
@@ -903,25 +919,23 @@ public class Administrator extends Stage {
             Connection conn = ds.getConnection();
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-            //
-            List<PatientAlert> list = new ArrayList<PatientAlert>();
+            
+            List<PatientAlert> list = new ArrayList<>();
+            
             while (rs.next()) {
                 //What I receieve:  patientID, email, full_name, dob, address, insurance
                 PatientAlert pa = new PatientAlert(rs.getString("alertID"), rs.getString("alert"), getFlagsFromDatabase(rs.getString("alertID")));
 
                 pa.placeholder.setText("Delete Alert");
                 pa.placeholder.setId("cancel");
-                pa.placeholder.setOnAction(new EventHandler<ActionEvent>() {
-                    @Override
-                    public void handle(ActionEvent e) {
-                        String sql = "DELETE FROM patientAlerts WHERE alertID = '" + pa.getAlertID() + "' ";
-                        App.executeSQLStatement(sql);
-                        sql = "DELETE FROM flags WHERE alertID = '" + pa.getAlertID() + "' ";
-                        App.executeSQLStatement(sql);
-                        sql = "DELETE FROM alertsPatientConnnector WHERE alertID = '" + pa.getAlertID() + "' ";
-                        App.executeSQLStatement(sql);
-                        populatePatientAlerts();
-                    }
+                pa.placeholder.setOnAction((ActionEvent e) -> {
+                    String sql1 = "DELETE FROM patientAlerts WHERE alertID = '" + pa.getAlertID() + "' ";
+                    App.executeSQLStatement(sql1);
+                    sql1 = "DELETE FROM flags WHERE alertID = '" + pa.getAlertID() + "' ";
+                    App.executeSQLStatement(sql1);
+                    sql1 = "DELETE FROM alertsPatientConnnector WHERE alertID = '" + pa.getAlertID() + "' ";
+                    App.executeSQLStatement(sql1);
+                    populatePatientAlerts();
                 });
                 pa.placeholder1.setText("Add Flag");
                 pa.placeholder1.setId("complete");
@@ -930,12 +944,12 @@ public class Administrator extends Stage {
                 list.add(pa);
             }
 
-//            fl = new FilteredList(FXCollections.observableList(list), p -> true);
             table.getItems().addAll(list);
-            //
+            
             rs.close();
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
@@ -962,21 +976,15 @@ public class Administrator extends Stage {
         x.setScene(new Scene(y));
         x.show();
 
-        submit.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent eh) {
-                String sql = "INSERT INTO patientAlerts(alert) VALUES ('" + alert.getText() + "') ;";
-                App.executeSQLStatement(sql);
-                populatePatientAlerts();
-                x.close();
-            }
-
+        submit.setOnAction((ActionEvent eh) -> {
+            String sql = "INSERT INTO patientAlerts(alert) VALUES ('" + alert.getText() + "') ;";
+            App.executeSQLStatement(sql);
+            populatePatientAlerts();
+            x.close();
         });
     }
-//
 
     private String getFlagsFromDatabase(String aInt) {
-
         String val = "";
         String sql = "Select orderCodes.orders "
                 + " FROM flags "
@@ -989,16 +997,18 @@ public class Administrator extends Stage {
             Connection conn = ds.getConnection();
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-            //
-            List<PatientAlert> list = new ArrayList<PatientAlert>();
+            
+            List<PatientAlert> list = new ArrayList<>();
+            
             while (rs.next()) {
                 //What I receieve:  patientID, email, full_name, dob, address, insurance
                 val += rs.getString("orders") + ", ";
             }
-            //
+            
             rs.close();
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
@@ -1006,7 +1016,7 @@ public class Administrator extends Stage {
     }
 
     private void addFlag(PatientAlert pa) {
-        ArrayList<String> modalities = new ArrayList<String>();
+        ArrayList<String> modalities = new ArrayList<>();
         Stage x = new Stage();
         x.initOwner(this);
         x.setTitle("Add Flag");
@@ -1034,17 +1044,13 @@ public class Administrator extends Stage {
         x.setWidth(300);
         x.show();
 
-        submit.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent eh) {
-                for (String z : modalities) {
-                    String sql = "INSERT INTO flags VALUES ('" + pa.getAlertID() + "', (SELECT orderID FROM orderCodes WHERE orders = '" + z + "') )";
-                    App.executeSQLStatement(sql);
-                }
-                populatePatientAlerts();
-                x.close();
+        submit.setOnAction((ActionEvent eh) -> {
+            for (String z : modalities) {
+                String sql = "INSERT INTO flags VALUES ('" + pa.getAlertID() + "', (SELECT orderID FROM orderCodes WHERE orders = '" + z + "') )";
+                App.executeSQLStatement(sql);
             }
-
+            populatePatientAlerts();
+            x.close();
         });
 
         orders.setOnAction(new EventHandler<ActionEvent>() {
@@ -1053,13 +1059,10 @@ public class Administrator extends Stage {
                 modalities.add(orders.getValue().toString());
                 Button temp = new Button(orders.getValue().toString());
                 buttonContainer.getChildren().add(temp);
-                temp.setOnAction(new EventHandler<ActionEvent>() {
-                    @Override
-                    public void handle(ActionEvent t) {
-                        if (!orders.getValue().toString().isBlank()) {
-                            modalities.remove(temp.getText());
-                            buttonContainer.getChildren().remove(temp);
-                        }
+                temp.setOnAction((ActionEvent t1) -> {
+                    if (!orders.getValue().toString().isBlank()) {
+                        modalities.remove(temp.getText());
+                        buttonContainer.getChildren().remove(temp);
                     }
                 });
             }
@@ -1070,26 +1073,29 @@ public class Administrator extends Stage {
     private ComboBox populateOrdersDropdown() {
         String sql = "Select orders "
                 + " FROM orderCodes;";
+        
         ComboBox dropdown = new ComboBox();
+        
         try {
 
             Connection conn = ds.getConnection();
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-            //
 
             while (rs.next()) {
                 dropdown.getItems().add(rs.getString("orders"));
             }
-            //
+            
             rs.close();
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
         return dropdown;
     }
-    //</editor-fold>
-//
+    
+//</editor-fold>
+
 }

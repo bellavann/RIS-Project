@@ -1,25 +1,19 @@
 package system.ris;
 
 import static system.ris.App.ds;
-import static system.ris.App.url;
 import datastorage.Appointment;
 import datastorage.User;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLConnection;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.collections.FXCollections;
@@ -27,11 +21,8 @@ import javafx.collections.transformation.FilteredList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -39,12 +30,8 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.util.Callback;
-import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
@@ -53,50 +40,52 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import org.apache.commons.io.FileUtils;
-import org.postgresql.ds.PGSimpleDataSource;
 
 public class Rad extends Stage {
-    //navbar
-
+//<editor-fold>
+    
+    //Navbar
     HBox navbar = new HBox();
     Label username = new Label("Logged In as Radiologist: " + App.user.getFullName());
     ImageView pfp = new ImageView(App.user.getPfp());
-
     Button logOut = new Button("Log Out");
+    //End Navbar
 
-    //end navbar
-    //table
+    //Table
     TableView appointmentsTable = new TableView();
     VBox tableContainer = new VBox(appointmentsTable);
 
-    //scene
+    //Scene
     BorderPane main = new BorderPane();
     Scene scene = new Scene(main);
+    //End Scene
 
-    //end scene
+    //Search Bar
     private FilteredList<Appointment> flAppointment;
     ChoiceBox<String> choiceBox = new ChoiceBox();
     TextField search = new TextField("Search Appointments");
+    
+    //Container
     HBox searchContainer = new HBox(choiceBox, search);
 
     private final FileChooser fileChooser = new FileChooser();
 
+//</editor-fold>
+
+    /*
+        Rad Constructor.
+        Creates and populates the Radiologist Page
+     */
     public Rad() {
         this.setTitle("RIS - Radiology Information System (Radiologist)");
-        //navbar
+        
+        //Navbar
         navbar.setAlignment(Pos.TOP_RIGHT);
         logOut.setPrefHeight(30);
-        logOut.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent e) {
-                logOut();
-            }
-        });
         pfp.setPreserveRatio(true);
         pfp.setFitHeight(38);
         username.setId("navbar");
@@ -104,13 +93,13 @@ public class Rad extends Stage {
         navbar.getChildren().addAll(username, pfp, logOut);
         navbar.setStyle("-fx-background-color: #2f4f4f; -fx-spacing: 15;");
         main.setTop(navbar);
-        //end navbar
+        //End Navbar
 
-        //center
+        //Center
         main.setCenter(tableContainer);
         createTableAppointments();
         populateTable();
-        //end center
+        //End Center
 
         //Searchbar Structure
         tableContainer.getChildren().add(searchContainer);
@@ -136,13 +125,40 @@ public class Rad extends Stage {
             appointmentsTable.getItems().addAll(flAppointment);
         });
 
-        //set scene and structure
+        //Buttons
+        logOut.setOnAction((ActionEvent e) -> {
+            logOut();
+        });
+        
+        //Set Scene and Structure
         scene.getStylesheets().add("file:stylesheet.css");
         this.setScene(scene);
+        //End Scene
     }
 
+    /*
+        Logout
+     */
+    private void logOut() {
+        App.user = new User();
+        Stage x = new Login();
+        x.show();
+        x.setMaximized(true);
+        this.close();
+    }
+
+    /*
+        User Info Page
+     */
+    private void userInfo() {
+        Stage x = new UserInfo();
+        x.show();
+        x.setMaximized(true);
+        this.close();
+    }
+    
     private void createTableAppointments() {
-        //columns of table
+        //All of the Columns
         TableColumn patientIDCol = new TableColumn("Patient ID");
         TableColumn fullNameCol = new TableColumn("Name");
         TableColumn timeCol = new TableColumn("Time");
@@ -150,7 +166,7 @@ public class Rad extends Stage {
         TableColumn statusCol = new TableColumn("Appointment Status");
         TableColumn reportCol = new TableColumn("Report");
 
-        //all of the value settings
+        //All of the Value settings
         patientIDCol.setCellValueFactory(new PropertyValueFactory<>("patientID"));
         fullNameCol.setCellValueFactory(new PropertyValueFactory<>("fullName"));
         timeCol.setCellValueFactory(new PropertyValueFactory<>("time"));
@@ -158,35 +174,32 @@ public class Rad extends Stage {
         statusCol.setCellValueFactory(new PropertyValueFactory<>("statusAsLabel"));
         reportCol.setCellValueFactory(new PropertyValueFactory<>("placeholder"));
 
-        //Couldn't put all the styling
-//        patientIDCol.prefWidthProperty().bind(appointmentsTable.widthProperty().multiply(0.09));
-//        fullNameCol.prefWidthProperty().bind(appointmentsTable.widthProperty().multiply(0.06));
-//        timeCol.prefWidthProperty().bind(appointmentsTable.widthProperty().multiply(0.2));
+        //Set Column Widths
         orderIDCol.prefWidthProperty().bind(appointmentsTable.widthProperty().multiply(0.3));
-//        reportCol.prefWidthProperty().bind(appointmentsTable.widthProperty().multiply(0.3));
+
         appointmentsTable.setStyle("-fx-background-color: #25A18E; -fx-text-fill: WHITE; ");
-        //Together again
+        
+        //Add columns to table
         appointmentsTable.getColumns().addAll(patientIDCol, fullNameCol, timeCol, orderIDCol, statusCol, reportCol);
-        //Add Status Update Column:
     }
 
     private void populateTable() {
         appointmentsTable.getItems().clear();
-        //connects to database
-
+        
+        //Connect to database
         String sql = "Select appt_id, patient_id, patients.full_name, time, statusCode.status"
                 + " FROM appointments"
                 + " INNER JOIN statusCode ON appointments.statusCode = statusCode.statusID"
                 + " INNER JOIN patients ON appointments.patient_id = patients.patientID"
                 + " WHERE statusCode = 4"
                 + " ORDER BY time ASC;";
+        
         try {
 
             Connection conn = ds.getConnection();
-
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-            //
+            
             List<Appointment> list = new ArrayList<Appointment>();
 
             while (rs.next()) {
@@ -195,6 +208,7 @@ public class Rad extends Stage {
                 appt.setFullName(rs.getString("full_name"));
                 list.add(appt);
             }
+            
             for (Appointment z : list) {
                 z.placeholder.setText("Create Report");
                 z.placeholder.setOnAction(new EventHandler<ActionEvent>() {
@@ -204,58 +218,45 @@ public class Rad extends Stage {
                     }
                 });
             }
+            
             flAppointment = new FilteredList(FXCollections.observableList(list), p -> true);
             appointmentsTable.getItems().addAll(flAppointment);
-            //
+            
             rs.close();
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
     }
 
     private String getPatOrders(String patientID, String aInt) {
-
         String sql = "Select orderCodes.orders "
                 + " FROM appointmentsOrdersConnector "
                 + " INNER JOIN orderCodes ON appointmentsOrdersConnector.orderCodeID = orderCodes.orderID "
                 + " WHERE apptID = '" + aInt + "';";
 
         String value = "";
+        
         try {
             Connection conn = ds.getConnection();
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-            //
 
             while (rs.next()) {
 
                 value += rs.getString("orders") + ", ";
             }
-            //
+            
             rs.close();
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
         return value;
-    }
-
-    private void logOut() {
-        App.user = new User();
-        Stage x = new Login();
-        x.show();
-        x.setMaximized(true);
-        this.close();
-    }
-
-    private void userInfo() {
-        Stage x = new UserInfo();
-        x.show();
-        x.setMaximized(true);
-        this.close();
     }
 
     private void radOne() {
@@ -271,10 +272,7 @@ public class Rad extends Stage {
         Label imgInfo = new Label("Images Uploaded: " + fullname + "\t Order/s Requested: " + order);
         fileChooser.getExtensionFilters().addAll(
                 new FileChooser.ExtensionFilter("Image Files", "*.png")
-        //                 new FileChooser.ExtensionFilter("HTML Files", "*.htm")
         );
-//        Button complete = new Button("Fulfill Order");
-//        complete.setId("complete");
         Button cancel = new Button("Go Back");
         cancel.setId("cancel");
         Button addReport = new Button("Upload Report");
@@ -286,27 +284,18 @@ public class Rad extends Stage {
         //Set Size of Every button in buttonContainer
         cancel.setPrefSize(200, 100);
         addReport.setPrefSize(200, 100);
-        //
-        cancel.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent e) {
-                populateTable();
-                main.setCenter(tableContainer);
-            }
+        
+        cancel.setOnAction((ActionEvent e) -> {
+            populateTable();
+            main.setCenter(tableContainer);
         });
 
-        addReport.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent t) {
-                openFile(patID, apptId);
-
-            }
+        addReport.setOnAction((ActionEvent t) -> {
+            openFile(patID, apptId);
         });
-
     }
 
     private void openFile(String patID, String apptId) {
-
         Stage x = new Stage();
         x.initOwner(this);
         x.initModality(Modality.WINDOW_MODAL);
@@ -315,8 +304,6 @@ public class Rad extends Stage {
         Label label = new Label("Report");
         Button confirm = new Button("Confirm");
         confirm.setId("complete");
-        // Button viewImg = new Button("View Image");
-        //viewImg.setId("View Image");
 
         VBox imgContainer = new VBox();
         ArrayList<Pair> list = retrieveUploadedImages(apptId);
@@ -344,21 +331,19 @@ public class Rad extends Stage {
                 tempBox.setAlignment(Pos.CENTER);
                 tempBox.setPadding(new Insets(10));
                 hbox.get(hboxCounter).getChildren().addAll(tempBox);
-                download.setOnAction(new EventHandler<ActionEvent>() {
-                    @Override
-                    public void handle(ActionEvent e) {
-                        DirectoryChooser directoryChooser = new DirectoryChooser();
-                        File selectedDirectory = directoryChooser.showDialog(x);
-                        downloadImage(i, selectedDirectory);
-                    }
-
+                download.setOnAction((ActionEvent e) -> {
+                    DirectoryChooser directoryChooser = new DirectoryChooser();
+                    File selectedDirectory = directoryChooser.showDialog(x);
+                    downloadImage(i, selectedDirectory);
                 });
                 counter++;
             }
         }
+        
         for (HBox i : hbox) {
             imgContainer.getChildren().add(i);
         }
+        
         imgContainer.setSpacing(10);
         imgContainer.setPadding(new Insets(10));
         ScrollPane s1 = new ScrollPane();
@@ -374,29 +359,23 @@ public class Rad extends Stage {
         y.getStylesheets().add("file:stylesheet.css");
         x.setScene(new Scene(y));
 
-        cancel.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent e) {
-                x.close();
-            }
+        cancel.setOnAction((ActionEvent e) -> {
+            x.close();
         });
-        confirm.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent e) {
-                if (reportText.getText().isBlank()) {
-                    Alert a = new Alert(Alert.AlertType.INFORMATION);
-                    a.setTitle("Error");
-                    a.setHeaderText("Try Again");
-                    a.setContentText("Please enter a valid report.\n");
-                    a.show();
-                    return;
-                }
-                addReportToDatabase(reportText.getText(), apptId);
-                updateAppointmentStatus(patID, apptId);
-                x.close();
-                populateTable();
-                main.setCenter(tableContainer);
+        confirm.setOnAction((ActionEvent e) -> {
+            if (reportText.getText().isBlank()) {
+                Alert a = new Alert(Alert.AlertType.INFORMATION);
+                a.setTitle("Error");
+                a.setHeaderText("Try Again");
+                a.setContentText("Please enter a valid report.\n");
+                a.show();
+                return;
             }
+            addReportToDatabase(reportText.getText(), apptId);
+            updateAppointmentStatus(patID, apptId);
+            x.close();
+            populateTable();
+            main.setCenter(tableContainer);
         });
 
         VBox container = new VBox(s1, label, reportText, btnContainer);
@@ -407,12 +386,14 @@ public class Rad extends Stage {
     private void addReportToDatabase(String report, String apptId) {
         String sql = "INSERT INTO report (apptID, writtenreport) VALUES ('" + apptId + "', ?);";
         try {
+            
             Connection conn = ds.getConnection();
             PreparedStatement stmt = conn.prepareStatement(sql);
             stmt.setString(1, report);
             stmt.executeUpdate();
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
@@ -420,7 +401,7 @@ public class Rad extends Stage {
 
     private ArrayList<Pair> retrieveUploadedImages(String apptId) {
         //Connect to database
-        ArrayList<Pair> list = new ArrayList<Pair>();
+        ArrayList<Pair> list = new ArrayList<>();
 
         String sql = "SELECT *"
                 + " FROM images"
@@ -428,21 +409,22 @@ public class Rad extends Stage {
                 + " ORDER BY imageID DESC;";
 
         try {
+            
             Connection conn = ds.getConnection();
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-            //
+            
             while (rs.next()) {
                 //What I receieve:  image
                 Pair pair = new Pair(new Image(rs.getBinaryStream("image")), rs.getString("imageID"));
                 pair.fis = rs.getBinaryStream("image");
                 list.add(pair);
-//                System.out.println(rs.getBinaryStream("image"));
             }
-            //
+            
             rs.close();
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
@@ -450,16 +432,18 @@ public class Rad extends Stage {
     }
 
     private void updateAppointmentStatus(String patID, String apptId) {
-
         String sql = "UPDATE appointments"
                 + " SET statusCode = 5"
                 + " WHERE appt_id = '" + apptId + "';";
+        
         try {
+            
             Connection conn = ds.getConnection();
             Statement stmt = conn.createStatement();
             stmt.execute(sql);
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
@@ -467,17 +451,19 @@ public class Rad extends Stage {
 
     private void downloadImage(Pair img, File selectedDirectory) {
         try {
+            
             String mimeType = URLConnection.guessContentTypeFromStream(img.fis);
             System.out.print(mimeType);
             mimeType = mimeType.replace("image/", "");
             File outputFile = new File(selectedDirectory.getPath() + "/" + img.imgID + "." + mimeType);
             FileUtils.copyInputStreamToFile(img.fis, outputFile);
+            
         } catch (IOException ex) {
             Logger.getLogger(ReferralDoctor.class.getName()).log(Level.SEVERE, null, ex);
         }
-
     }
 
+    //Private Nested Class
     private class Pair {
 
         Image img;

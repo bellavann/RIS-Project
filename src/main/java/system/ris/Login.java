@@ -40,18 +40,16 @@ import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
-/**
- *
- * @author 14048
- */
 public class Login extends Stage {
-//Creating all individual elements in scene
+    
+    //Creating all individual elements in scene
     //Create Username/Password Label and Textbox 
 
     private Label textUsername = new Label("Enter your Username:");
     private TextField inputUsername = new TextField("here");
     private Label textPassword = new Label("Enter your Password:");
     private PasswordField inputPassword = new PasswordField();
+    
     //Create Login Button. Logic for Button at End.
     private Button btnLogin = new Button("Login");
     private GridPane grid = new GridPane();
@@ -59,31 +57,32 @@ public class Login extends Stage {
     Scene scene = new Scene(center, 1000, 1000);
 
     //Constructor. Displays view
-    //
     Login() {
         //Setting the Title
         this.setTitle("RIS- Radiology Information System (Logging In)");
-        //edit gridPane to look better
+        
+        //Edit gridPane to look better
         changeGridPane();
+        
         //ON button click
-        btnLogin.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent e) {
-                loginCheck();
-            }
-
+        btnLogin.setOnAction((ActionEvent e) -> {
+            loginCheck();
         });
+        
         inputUsername.setId("textfield");
         inputPassword.setId("textfield");
         center.setId("loginpage");
         center.setSpacing(10);
+        
         try {
+            
             //Setting the logo
             FileInputStream file = new FileInputStream("logo.png");
             Image logo = new Image(file);
             ImageView logoDisplay = new ImageView(logo);
             center.setAlignment(Pos.CENTER);
             center.getChildren().addAll(logoDisplay, grid);
+            
         } catch (FileNotFoundException ex) {
             Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -94,12 +93,6 @@ public class Login extends Stage {
         this.setMaximized(true);
         this.show();
         connectToDatabase();
-        //
-//        String sql = "DROP TABLE appointments;";
-//        App.executeSQLStatement(sql);
-//        App.createAppointmentTable(sql);
-
-        //
     }
 
     private void changeGridPane() {
@@ -116,17 +109,15 @@ public class Login extends Stage {
         grid.setHgap(5);
         grid.setVgap(5);
         grid.getChildren().addAll(textUsername, inputUsername, textPassword, inputPassword, btnLogin);
-        //
-
     }
 
-//  loginCheck()
-//    Checks user inputted username/password
-//    Gets user, sets local user
-//    Opens new stage for user's role
-//    
+    /*
+        loginCheck()
+        Checks user inputted username/password
+        Gets user, sets local user
+        Opens new stage for user's role
+     */
     private void loginCheck() {
-
         String username = inputUsername.getText();
         String password = inputPassword.getText();
 
@@ -141,6 +132,7 @@ public class Login extends Stage {
         String sql = "Select * FROM users WHERE username = '" + username + "' AND password = '" + password + "' AND enabled = true;";
 
         try {
+            
             Connection conn = ds.getConnection();
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
@@ -159,12 +151,9 @@ public class Login extends Stage {
                 }
             }
 
-//
-            //
             rs.close();
             stmt.close();
             conn.close();
-            //
 
             if (App.user.getRole() == 0) {
                 throw new SQLException("Invalid Username / Password");
@@ -204,6 +193,7 @@ public class Login extends Stage {
                 x.setMaximized(true);
                 this.hide();
             }
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
 
@@ -227,7 +217,6 @@ public class Login extends Stage {
             a.setContentText("Username / Password not found. \nPlease contact an administrator if problem persists. ");
             a.show();
         }
-
     }
 
     //Checks for valid database connection
@@ -250,53 +239,51 @@ public class Login extends Stage {
                 HBox container = new HBox(text, area, submit);
                 y.setCenter(container);
                 x.show();
-                submit.setOnAction(new EventHandler<ActionEvent>() {
-                    @Override
-                    public void handle(ActionEvent eh) {
-                        if (!area.getText().isEmpty()) {
-                            FileOutputStream outputStream = null;
+                submit.setOnAction((ActionEvent eh) -> {
+                    if (!area.getText().isEmpty()) {
+                        FileOutputStream outputStream = null;
+                        try {
+                            outputStream = new FileOutputStream(credentials);
+                            byte[] strToBytes = area.getText().getBytes();
+                            outputStream.write(strToBytes);
+                            App.url = area.getText();
+                            ds.setUrl(Optional.ofNullable(url).orElseThrow(() -> new IllegalArgumentException("JDBC_DATABASE_URL is not set.")));
+                        } catch (FileNotFoundException ex) {
+                            Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+                        } catch (IOException ex) {
+                            Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+                        } catch (IllegalArgumentException ex) {
+                            credentials.delete();
+                            Alert a = new Alert(AlertType.INFORMATION);
+                            a.setTitle("Error");
+                            a.setHeaderText("URL Invalid");
+                            a.setContentText("URL Invalid. Please contact your Administrator. (Restart Application)");
+                            a.showAndWait();
+                            
+                        } finally {
                             try {
-                                outputStream = new FileOutputStream(credentials);
-                                byte[] strToBytes = area.getText().getBytes();
-                                outputStream.write(strToBytes);
-                                App.url = area.getText();
-                                ds.setUrl(Optional.ofNullable(url).orElseThrow(() -> new IllegalArgumentException("JDBC_DATABASE_URL is not set.")));
-                            } catch (FileNotFoundException ex) {
-                                Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
+                                outputStream.close();
                             } catch (IOException ex) {
                                 Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
-                            } catch (IllegalArgumentException ex) {
-                                credentials.delete();
-                                Alert a = new Alert(AlertType.INFORMATION);
-                                a.setTitle("Error");
-                                a.setHeaderText("URL Invalid");
-                                a.setContentText("URL Invalid. Please contact your Administrator. (Restart Application)");
-                                a.showAndWait();
-
-                            } finally {
-                                try {
-                                    outputStream.close();
-                                } catch (IOException ex) {
-                                    Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
-                                }
                             }
-                            x.close();
-
                         }
+                        x.close();
                     }
                 });
             } else {
-                FileReader fr = new FileReader(credentials);   //reads the file  
-                BufferedReader br = new BufferedReader(fr);  //creates a buffering character input stream  
-                StringBuffer sb = new StringBuffer();    //constructs a string buffer with no characters  
+                FileReader fr = new FileReader(credentials);    //reads the file  
+                BufferedReader br = new BufferedReader(fr);     //creates a buffering character input stream  
+                StringBuffer sb = new StringBuffer();           //constructs a string buffer with no characters  
                 String line;
                 while ((line = br.readLine()) != null) {
-                    sb.append(line);      //appends line to string buffer  
+                    sb.append(line);    //appends line to string buffer  
                 }
-                fr.close();    //closes the stream and release the resources
+                fr.close();     //closes the stream and release the resources
                 try {
+                    
                     App.url = sb.toString();
                     ds.setUrl(Optional.ofNullable(url).orElseThrow(() -> new IllegalArgumentException("JDBC_DATABASE_URL is not set.")));
+                
                 } catch (IllegalArgumentException ex) {
                     credentials.delete();
                     Alert a = new Alert(AlertType.INFORMATION);
@@ -307,8 +294,10 @@ public class Login extends Stage {
                 }
 
             }
+            
         } catch (IOException ex) {
             Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+    
 }

@@ -1,28 +1,22 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package datastorage;
 
 import javafx.scene.control.Button;
 
-/**
- *
- * @author 14048
- */
 public class Patient {
 
     String patientID;
-    String email, fullName, dob, address, insurance;
+    String email, fullName, username, dob, address, insurance;
     public Button placeholder = new Button("Placeholder");
 
     public Patient() {
+        
     }
 
-    public Patient(String patientID, String email, String fullName, String dob, String address, String insurance) {
+    public Patient(String patientID, String email, String fullName, String username, String dob, String address, String insurance) {
         this.patientID = patientID;
         this.email = email;
         this.fullName = fullName;
+        this.username = username;
         this.dob = dob;
         this.address = address;
         this.insurance = insurance;
@@ -52,6 +46,14 @@ public class Patient {
         this.fullName = fullName;
     }
 
+    public String getUsername(){
+        return username;
+    }
+    
+    public void setUsername(String username){
+        this.username = username;
+    }
+    
     public String getDob() {
         return dob;
     }

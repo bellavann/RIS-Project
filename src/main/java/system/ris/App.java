@@ -1,53 +1,60 @@
 package system.ris;
 
 import datastorage.User;
-import java.io.File;
 import javafx.application.Application;
 import javafx.stage.Stage;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Optional;
 import org.postgresql.ds.PGSimpleDataSource;
 
-/**
- * JavaFX App
+/*
+    JavaFX App
  */
 public class App extends Application {
 
     public static User user;
     public static String fileName = "risDirectory";
     public static String imagePathDirectory = "Favicons/";
-//    public static String url = System.getenv("JDBC_DATABASE_URL");
     public static String url = "";
     public static PGSimpleDataSource ds = new PGSimpleDataSource();
 
-    /**
-     * Primary beginning of application Launches the Login Page
+    /*
+        Primary beginning of application Launches the Login Page
      */
     @Override
     public void start(Stage stage) {
-
         //Creating, Editing, Adding stuff to the scene
         //Add stuff to the Stage
         stage = new Login();
-        //
-
     }
 
-    /**
-     * Finds the root certificate to connect to the database.
-     *
+    /*
+        Finds the root certificate to connect to the database.
      */
     public static void main1(String[] args) {
         ds.setSslRootCert("root.crt");
         launch();
+        
+        /*
+            Uncomment code below to populate database. After system is run once, recomment code
+        */
+//        createAndPopulateTables(fileName);
+//        createAppointmentTable(fileName);
+//        createDocPatientConnectorTable(fileName);
+//        createPatientTable(fileName);
+//        createStatusCodesTable(fileName);
+//        createOrderCodesTable(fileName);
+//        createOrdersTable(fileName);
+//        createImageTable(fileName);
+//        createRadReportTable(fileName);
+//        populateTablesStatus(fileName);
+//        createPatientPayment();
+//        populateTables(fileName);
     }
 
     /*
-      Creates tables Users, Roles Populates Roles Table 
+        Creates tables Users and Roles, Populates Roles Table 
         1: Administrator 2: Receptionist 3: Technician 4: Radiologist 5: Referral Doctor 6: Biller
      */
     public static void createAndPopulateTables(String fileName) {
@@ -93,7 +100,6 @@ public class App extends Application {
         Creates tables Appointments, AppointmentsOrdersConnector
      */
     public static void createAppointmentTable(String fileName) {
-        //apptId, patientID, fullname, time, address, insurance, referral, status, order
         String sql = "CREATE TABLE appointments (\n"
                 + "	appt_id INT PRIMARY KEY UNIQUE DEFAULT unique_rowid(),\n"
                 + "	patient_id INT NOT NULL,\n"
@@ -103,6 +109,7 @@ public class App extends Application {
                 + "     UNIQUE(patient_id, time) "
                 + ");";
         executeSQLStatement(sql);
+        
         String sql1 = "CREATE TABLE appointmentsOrdersConnector ( "
                 + "     apptID INT,"
                 + "     orderCodeID INT, "
@@ -120,7 +127,6 @@ public class App extends Application {
                 + "	patientID INT, \n"
                 + "     UNIQUE(referralDocID, patientID)"
                 + ");";
-
         executeSQLStatement(sql);
     }
 
@@ -132,6 +138,8 @@ public class App extends Application {
                 + "	patientID INT PRIMARY KEY DEFAULT unique_rowid(),\n"
                 + "	email VARCHAR(45) NOT NULL,\n"
                 + "	full_name VARCHAR(45) NOT NULL,\n"
+                + "	username VARCHAR(25) UNIQUE NOT NULL,\n"
+                + "	password VARCHAR(64) NOT NULL,\n"
                 + "	dob VARCHAR(45) NOT NULL,\n"
                 + "	address VARCHAR(64) NOT NULL,\n"
                 + "     insurance VARCHAR(64) NOT NULL, \n"
@@ -274,8 +282,6 @@ public class App extends Application {
         Creates table PatientPayments.
      */
     public static void createPatientPayment() {
-        //String sql2 = "DROP TABLE patientPayments;";
-        //executeSQLStatement(sql2);
         String sql = "CREATE TABLE patientPayments(\n"
                 + "apptID INTEGER, \n"
                 + "time TEXT, \n"
@@ -288,9 +294,30 @@ public class App extends Application {
     /*
         Populates the Admin table
      */
-    public static void populateTablesAdmin(String fileName) {
-        String sql = "INSERT INTO users(email, full_name, username, password, role) VALUES ('god@gmail.com', 'Administrator Dave', 'admin', 'admin', '1');\n";
+    public static void populateTables(String fileName) {
+        String sql = "INSERT INTO users(email, full_name, username, password, role) "
+                + "VALUES ('admin@gmail.com', 'Dave Martin', 'admin', 'admin', '1');\n";
+        executeSQLStatement(sql);
+        
+        sql = "INSERT INTO users(email, full_name, username, password, role) "
+                + "VALUES ('rec@gmail.com', 'Pam Beesley', 'rec', 'rec', '2');\n";
+        executeSQLStatement(sql);
+        
+        sql = "INSERT INTO users(email, full_name, username, password, role) "
+                + "VALUES ('tech@yahoo.com', 'Michael Thomas', 'tech', 'tech', '3');\n";
+        executeSQLStatement(sql);
+        
+        sql = "INSERT INTO users(email, full_name, username, password, role) "
+                + "VALUES ('rad@outlook.com', 'Susan Harris', 'rad', 'rad', '4');\n";
+        executeSQLStatement(sql);
+        
+        sql = "INSERT INTO users(email, full_name, username, password, role) "
+                + "VALUES ('doc@gmail.com', 'Emily Moore', 'doc', 'doc', '5');\n";
+        executeSQLStatement(sql);
+        
+        sql = "INSERT INTO users(email, full_name, username, password, role) "
+                + "VALUES ('bill@zoho.com', 'Kevin Harte', 'bill', 'bill', '6');\n";
         executeSQLStatement(sql);
     }
-
+    
 }

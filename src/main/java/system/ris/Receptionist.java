@@ -1,9 +1,5 @@
 package system.ris;
 
-/**
- *
- * @author 14048
- */
 import static system.ris.App.ds;
 import static system.ris.App.url;
 import datastorage.User;
@@ -12,7 +8,6 @@ import datastorage.InputValidation;
 import datastorage.Patient;
 import datastorage.PatientAlert;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -46,60 +41,67 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import org.postgresql.ds.PGSimpleDataSource;
 
 public class Receptionist extends Stage {
-
-    //<editor-fold>
-    //Stage Structure
+//<editor-fold>
+    
+    //Navbar
     HBox navbar = new HBox();
-    Button logOut = new Button("Log Out");
     Label username = new Label("Logged In as Receptionist: " + App.user.getFullName());
     ImageView pfp = new ImageView(App.user.getPfp());
+    Label patients = new Label("Patients");
+    Label appointments = new Label("Appointments");
+    Button logOut = new Button("Log Out");
+    //End Navbar
 
+    //Table
+    TableView table = new TableView();
+    VBox patientsContainer = new VBox();
+    VBox appointmentsContainer = new VBox();
+
+    //Scene
     BorderPane main = new BorderPane();
     Scene scene = new Scene(main);
-    //Table Structure
-    TableView table = new TableView();
-    TableColumn apptIDCol = new TableColumn("Appointment ID");
-    TableColumn patientIDCol = new TableColumn("Patient ID");
-    TableColumn firstNameCol = new TableColumn("Full Name");
-    TableColumn timeCol = new TableColumn("Time of Appt.");
-    TableColumn orderCol = new TableColumn("Orders Requested");
-    TableColumn status = new TableColumn("Status");
-    TableColumn updateAppt = new TableColumn("Update Appointment");
-    //Search Bar
-    FilteredList<Appointment> flAppointment;
-    ChoiceBox<String> choiceBox = new ChoiceBox();
-    TextField search = new TextField("Search Appointments");
+    //End Scene
+    
+    private FilteredList<Patient> flPatient;
+    private FilteredList<Appointment> flAppointment;
 
-    //Buttons
-    Button addAppointment = new Button("Add Appointment");
-    Button refreshTable = new Button("Refresh Appointments");
-    //Containers
-    HBox searchContainer = new HBox(choiceBox, search);
-    HBox buttonContainer = new HBox(addAppointment, refreshTable, searchContainer);
-    VBox tableContainer = new VBox(table, buttonContainer);
 //</editor-fold>
-    //Populate the stage
-
+    
+    /*
+        Receptionist Constructor.
+        Creates and populates the Receptionist Page
+     */
     Receptionist() {
-        this.setTitle("RIS- Radiology Information System (Reception)");
+        this.setTitle("RIS- Radiology Information System (Receptionist)");
+        
         //Navbar
-        pfp.setPreserveRatio(true);
-        pfp.setFitHeight(38);
         navbar.setAlignment(Pos.TOP_RIGHT);
         logOut.setPrefHeight(30);
+        pfp.setPreserveRatio(true);
+        pfp.setFitHeight(38);
         username.setId("navbar");
         username.setOnMouseClicked(eh -> userInfo());
-        navbar.getChildren().addAll(username, pfp, logOut);
+        HBox navButtons = new HBox(patients, appointments);
+        navButtons.setAlignment(Pos.TOP_LEFT);
+        navButtons.setSpacing(10);
+        HBox.setHgrow(navButtons, Priority.ALWAYS);
+        navbar.getChildren().addAll(navButtons, username, pfp, logOut);
         navbar.setStyle("-fx-background-color: #2f4f4f; -fx-spacing: 15;");
         main.setTop(navbar);
-        //End navbar
+        
+        patients.setId("navbar");
+        appointments.setId("navbar");
+        //End Navbar
 
-        //Putting center code here as to not clutter stuff
-        loadCenter();
-
+        //Center
+        Label tutorial = new Label("Select one of the buttons above to get started!");
+        main.setCenter(tutorial);
+        patients.setOnMouseClicked(eh -> patientsPageView());
+        appointments.setOnMouseClicked(eh -> appointmentsPageView());
+        //End Center
+        
         //Buttons
         logOut.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -107,20 +109,181 @@ public class Receptionist extends Stage {
                 logOut();
             }
         });
-        addAppointment.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent e) {
-                addAppointment();
-            }
-        });
-        refreshTable.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent e) {
-                populateTable();
-            }
-        });
+        
+        //Set Scene and Structure
+        scene.getStylesheets().add("file:stylesheet.css");
+        this.setScene(scene);
+        //End scene
+    }
+
+    /*
+        Logout
+     */
+    private void logOut() {
+        App.user = new User();
+        Stage x = new Login();
+        x.show();
+        x.setMaximized(true);
+        this.hide();
+    }
+
+    /*
+        User Info Page
+     */
+    private void userInfo() {
+        Stage x = new UserInfo();
+        x.show();
+        x.setMaximized(true);
+        this.close();
+    }
+
+//<editor-fold defaultstate="collapsed" desc="Patients Section">
+
+    private void patientsPageView() {
+        patientsContainer.getChildren().clear();
+
+        main.setCenter(patientsContainer);
+        createTablePatients();
+        populatePatientsTable();
+
+        patientsContainer.getChildren().addAll(table);
+        patientsContainer.setSpacing(10);
+        patients.setId("selected");
+        appointments.setId("navbar");
 
         //Searchbar Structure
+        ChoiceBox<String> choiceBox = new ChoiceBox();
+        TextField search = new TextField("Search Patients");
+        HBox searchContainer = new HBox(choiceBox, search);
+        searchContainer.setAlignment(Pos.TOP_RIGHT);
+        HBox.setHgrow(searchContainer, Priority.ALWAYS);
+        choiceBox.setPrefHeight(40);
+        search.setPrefHeight(40);
+        choiceBox.getItems().addAll("Patient ID", "Full Name", "Email", "Date of Birth", "Insurance");
+        choiceBox.setValue("Patient ID");
+        search.textProperty().addListener((obs, oldValue, newValue) -> {
+            if (choiceBox.getValue().equals("Patient ID")) {
+                flPatient.setPredicate(p -> new String(p.getPatientID() + "").contains(newValue));//filter table by Appt ID
+            } else if (choiceBox.getValue().equals("Full Name")) {
+                flPatient.setPredicate(p -> p.getFullName().toLowerCase().contains(newValue.toLowerCase()));//filter table by Patient Id
+            } else if (choiceBox.getValue().equals("Email")) {
+                flPatient.setPredicate(p -> p.getEmail().toLowerCase().contains(newValue.toLowerCase()));//filter table by Full name
+            } else if (choiceBox.getValue().equals("Date of Birth")) {
+                flPatient.setPredicate(p -> p.getDob().contains(newValue));//filter table by Date/Time
+            } else if (choiceBox.getValue().equals("Insurance")) {
+                flPatient.setPredicate(p -> p.getInsurance().contains(newValue));//filter table by Date/Time
+            }
+            table.getItems().clear();
+            table.getItems().addAll(flPatient);
+        });
+        
+        patientsContainer.getChildren().add(searchContainer);
+    }
+
+    private void createTablePatients() {
+        table.getColumns().clear();
+        
+        //All of the Columns
+        TableColumn patientIDCol = new TableColumn("Patient ID");
+        TableColumn fullNameCol = new TableColumn("Full Name");
+        TableColumn usernameCol = new TableColumn("Username");
+        TableColumn emailCol = new TableColumn("Email");
+        TableColumn DOBCol = new TableColumn("Date of Birth");
+        TableColumn insuranceCol = new TableColumn("Insurance");
+
+        //All of the Value setting
+        patientIDCol.setCellValueFactory(new PropertyValueFactory<>("patientID"));
+        fullNameCol.setCellValueFactory(new PropertyValueFactory<>("fullName"));
+        usernameCol.setCellValueFactory(new PropertyValueFactory<>("username"));
+        emailCol.setCellValueFactory(new PropertyValueFactory<>("email"));
+        DOBCol.setCellValueFactory(new PropertyValueFactory<>("dob"));
+        insuranceCol.setCellValueFactory(new PropertyValueFactory<>("insurance"));
+
+        //Set Column Widths
+        patientIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.09));
+        fullNameCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
+        usernameCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
+        emailCol.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
+        DOBCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
+        insuranceCol.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
+
+        table.setStyle("-fx-background-color: #25A18E; -fx-text-fill: WHITE; ");
+
+        //Add columns to table
+        table.getColumns().addAll(patientIDCol, fullNameCol, usernameCol, emailCol, DOBCol, insuranceCol);
+    }
+
+    private void populatePatientsTable() {
+        table.getItems().clear();
+        
+        //Connect to database
+        String sql = "Select patients.patientID, patients.email, patients.full_name, patients.username, patients.dob, patients.address, patients.insurance"
+                + " FROM patients"
+                + " "
+                + " ;";
+
+        try {
+
+            Connection conn = ds.getConnection();
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            
+            List<Patient> list = new ArrayList<Patient>();
+            
+            while (rs.next()) {
+                //What I receieve:  patientID, email, full_name, dob, address, insurance
+                Patient pat = new Patient(rs.getString("patientID"), rs.getString("email"), rs.getString("full_name"), rs.getString("username"), rs.getString("dob"), rs.getString("address"), rs.getString("insurance"));
+                list.add(pat);
+            }
+
+            for (Patient z : list) {
+                z.placeholder.setText("Patient Overview");
+                z.placeholder.setOnAction(new EventHandler<ActionEvent>() {
+                    @Override
+                    public void handle(ActionEvent e) {
+
+                    }
+
+                });
+            }
+
+            flPatient = new FilteredList(FXCollections.observableList(list), p -> true);
+            table.getItems().addAll(flPatient);
+            
+            rs.close();
+            stmt.close();
+            conn.close();
+            
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+//</editor-fold>
+    
+//<editor-fold defaultstate="collapsed" desc="Appointments Section">
+    
+    private void appointmentsPageView() {
+        appointmentsContainer.getChildren().clear();
+
+        main.setCenter(appointmentsContainer);
+        createTableAppointments();
+        populateTableAppointments();
+
+        Button addAppointment = new Button("Add Appointment");
+        Button refreshTable = new Button("Refresh Appointments");
+        HBox buttonContainer = new HBox(addAppointment, refreshTable);
+        buttonContainer.setSpacing(20);
+        
+        appointmentsContainer.getChildren().addAll(table, buttonContainer);
+        appointmentsContainer.setSpacing(10);
+        patients.setId("navbar");
+        appointments.setId("selected");
+
+        //Searchbar Structure
+        ChoiceBox<String> choiceBox = new ChoiceBox();
+        TextField search = new TextField("Search Appointments");
+        HBox searchContainer = new HBox(choiceBox, search);
         searchContainer.setAlignment(Pos.TOP_RIGHT);
         HBox.setHgrow(searchContainer, Priority.ALWAYS);
         choiceBox.setPrefHeight(40);
@@ -146,25 +309,36 @@ public class Receptionist extends Stage {
             table.getItems().clear();
             table.getItems().addAll(flAppointment);
         });
-        //End Searchbar Structure
-        //Scene Structure
-        scene.getStylesheets().add("file:stylesheet.css");
-        this.setScene(scene);
-        //End scene
 
-        //This function populates the table, making sure all NONCOMPLETED appointments are viewable
-        populateTable();
-
+        appointmentsContainer.getChildren().addAll(searchContainer);
+        
+        addAppointment.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent e) {
+                addAppointment();
+            }
+        });
+        refreshTable.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent e) {
+                populateTableAppointments();
+            }
+        });
     }
 
-    //Add stuff to the center, and make it look good.
-    private void loadCenter() {
-        //Vbox to hold the table
-        tableContainer.setAlignment(Pos.TOP_CENTER);
-        tableContainer.setPadding(new Insets(20, 10, 10, 10));
-        buttonContainer.setPadding(new Insets(10));
-        buttonContainer.setSpacing(10);
-        //Allow Table to read Appointment class
+    private void createTableAppointments() {
+        table.getColumns().clear();
+        
+        //All of the Columns
+        TableColumn apptIDCol = new TableColumn("Appointment ID");
+        TableColumn patientIDCol = new TableColumn("Patient ID");
+        TableColumn firstNameCol = new TableColumn("Full Name");
+        TableColumn timeCol = new TableColumn("Time of Appt.");
+        TableColumn orderCol = new TableColumn("Orders Requested");
+        TableColumn status = new TableColumn("Status");
+        TableColumn updateAppt = new TableColumn("Update Appointment");
+
+        //All of the Value setting
         apptIDCol.setCellValueFactory(new PropertyValueFactory<>("apptID"));
         patientIDCol.setCellValueFactory(new PropertyValueFactory<>("patientID"));
         firstNameCol.setCellValueFactory(new PropertyValueFactory<>("fullName"));
@@ -172,27 +346,24 @@ public class Receptionist extends Stage {
         orderCol.setCellValueFactory(new PropertyValueFactory<>("order"));
         status.setCellValueFactory(new PropertyValueFactory<>("statusAsLabel"));
         updateAppt.setCellValueFactory(new PropertyValueFactory<>("placeholder"));
-
+        
         //Set Column Widths
-//        apptIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.09));
-//        patientIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.09));
-//        firstNameCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
-//        timeCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
+        apptIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.09));
+        patientIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.09));
+        firstNameCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
+        timeCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
+        orderCol.prefWidthProperty().bind(table.widthProperty().multiply(0.4));
+        status.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
         orderCol.prefWidthProperty().bind(table.widthProperty().multiply(0.3));
-//        updateAppt.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
-//        status.prefWidthProperty().bind(table.widthProperty().multiply(0.15));
+        
         //Add columns to table
         table.getColumns().addAll(apptIDCol, patientIDCol, firstNameCol, timeCol, orderCol, status, updateAppt);
-        table.setStyle("-fx-background-color: #25A18E; -fx-text-fill: WHITE; ");
-        main.setCenter(tableContainer);
     }
 
-    //Clear the table, query the database, populate table based on results.
-    //DOES NOT SHOW 'COMPLETED' APPOINTMENTS. 
-    private void populateTable() {
+    private void populateTableAppointments() {
         table.getItems().clear();
+        
         //Connect to database
-
         String sql = "Select appt_id, patient_id, patients.full_name, time, statusCode.status"
                 + " FROM appointments"
                 + " INNER JOIN statusCode ON appointments.statusCode = statusCode.statusID "
@@ -204,10 +375,9 @@ public class Receptionist extends Stage {
 
             ds.setUrl(Optional.ofNullable(url).orElseThrow(() -> new IllegalArgumentException("JDBC_DATABASE_URL is not set.")));
             Connection conn = ds.getConnection();
-
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-            //
+            
             List<Appointment> list = new ArrayList<Appointment>();
 
             while (rs.next()) {
@@ -226,97 +396,79 @@ public class Receptionist extends Stage {
                     }
                 });
             }
+            
             flAppointment = new FilteredList(FXCollections.observableList(list), p -> true);
             table.getItems().addAll(flAppointment);
-            //
+            
             rs.close();
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
     }
 
     private String getPatOrders(String patientID, String aInt) {
-
         String sql = "Select orderCodes.orders "
                 + " FROM appointmentsOrdersConnector "
                 + " INNER JOIN orderCodes ON appointmentsOrdersConnector.orderCodeID = orderCodes.orderID "
                 + " WHERE apptID = '" + aInt + "';";
 
         String value = "";
+        
         try {
 
-            ds.setUrl(Optional.ofNullable(url).orElseThrow(() -> new IllegalArgumentException("JDBC_DATABASE_URL is not set.")));
             Connection conn = ds.getConnection();
-
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-            //
-
+            
             while (rs.next()) {
-
                 value += rs.getString("orders") + ", ";
             }
-            //
+            
             rs.close();
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
         return value;
     }
 
-    //On button press, log out
-    private void logOut() {
-        App.user = new User();
-        Stage x = new Login();
-        x.show();
-        x.setMaximized(true);
-        this.hide();
-    }
-
-    private void userInfo() {
-        Stage x = new UserInfo();
-        x.show();
-        x.setMaximized(true);
-        this.close();
-    }
-
     //On button press, open up a new stage (calls private nested class)
     private void addAppointment() {
         Stage x = new AddAppointment();
-        x.setTitle("Add Appointment");
         x.initOwner(this);
+        x.setTitle("Add Appointment");
         x.initModality(Modality.WINDOW_MODAL);
         x.showAndWait();
-        populateTable();
+        populateTableAppointments();
     }
 
     //On button press, open up a new stage
     private void updateAppointment(Appointment appt) {
         Stage x = new Stage();
-        x.setTitle("Update Appointment");
         x.initOwner(this);
+        x.setTitle("Update Appointment");
         x.setHeight(250);
         x.initModality(Modality.WINDOW_MODAL);
-        //
+        
         Button updateTime = new Button("Reschedule Appointment");
         Button updateStatus = new Button("Change Appointment Status");
         Button updatePatient = new Button("Update Patient Information");
         HBox display = new HBox(updateTime, updateStatus, updatePatient);
         display.setAlignment(Pos.CENTER);
         display.setSpacing(15);
-        //
 
-        //
         VBox container = new VBox(display);
         Scene scene = new Scene(container);
         x.setScene(scene);
         x.setWidth(750);
         scene.getStylesheets().add("file:stylesheet.css");
-        // 
+        
+        //Update Time
         updateTime.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent e) {
@@ -347,8 +499,8 @@ public class Receptionist extends Stage {
                 }
                 Text colon = new Text(":");
                 HBox time = new HBox(hours, colon, minutes);
-//                text.setPrefWidth(100);
-//                text1.setPrefWidth(150);
+//              text.setPrefWidth(100);
+//              text1.setPrefWidth(150);
                 Button submit = new Button("Submit");
                 submit.setPrefWidth(100);
                 submit.setId("complete");
@@ -375,6 +527,8 @@ public class Receptionist extends Stage {
                 });
             }
         });
+        
+        //Update Status
         updateStatus.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent e) {
@@ -393,8 +547,6 @@ public class Receptionist extends Stage {
                 submit.setOnAction(new EventHandler<ActionEvent>() {
                     @Override
                     public void handle(ActionEvent e) {
-                        //validation here
-                        //end validation
                         if (!dropdown.getValue().toString().isBlank()) {
                             updateStatus(dropdown.getValue().toString(), appt);
                             x.close();
@@ -403,10 +555,11 @@ public class Receptionist extends Stage {
                 });
             }
         });
+        
+        //Update Patient
         updatePatient.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent e) {
-
                 Patient pat = pullPatientInfo(appt.getPatientID());
                 x.close();
                 updatePatient(pat);
@@ -414,7 +567,7 @@ public class Receptionist extends Stage {
         });
 
         x.showAndWait();
-        populateTable();
+        populateTableAppointments();
     }
 
     private void updatePatient(Patient z) {
@@ -431,7 +584,7 @@ public class Receptionist extends Stage {
         x.setHeight(400);
         x.setWidth(300);
         scene.getStylesheets().add("file:stylesheet.css");
-        //
+        
         Text emailText = new Text("Email: ");
         TextField email = new TextField(z.getEmail());
         HBox emailContainer = new HBox(emailText, email);
@@ -450,6 +603,7 @@ public class Receptionist extends Stage {
         ArrayList<PatientAlert> alertsToAddForThisPatient = new ArrayList<PatientAlert>();
         ArrayList<PatientAlert> alertsToRemoveForThisPatient = new ArrayList<PatientAlert>();
         VBox patientAlertContainer = new VBox();
+        
         for (PatientAlert a : paList) {
             Text Text = new Text(a.getAlert());
             ComboBox dropdown = new ComboBox();
@@ -529,19 +683,18 @@ public class Receptionist extends Stage {
 
             ds.setUrl(Optional.ofNullable(url).orElseThrow(() -> new IllegalArgumentException("JDBC_DATABASE_URL is not set.")));
             Connection conn = ds.getConnection();
-
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-            //
 
             while (rs.next()) {
                 PatientAlert pa = new PatientAlert(rs.getString("alertID"), rs.getString("alert"), getFlagsFromDatabase(rs.getString("alertID")));
                 paList.add(pa);
             }
-            //
+            
             rs.close();
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
@@ -561,19 +714,18 @@ public class Receptionist extends Stage {
 
             ds.setUrl(Optional.ofNullable(url).orElseThrow(() -> new IllegalArgumentException("JDBC_DATABASE_URL is not set.")));
             Connection conn = ds.getConnection();
-
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-            //
 
             while (rs.next()) {
                 PatientAlert pa = new PatientAlert(rs.getString("alertID"), rs.getString("alert"), getFlagsFromDatabase(rs.getString("alertID")));
                 allergies.add(pa);
             }
-            //
+            
             rs.close();
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
@@ -581,7 +733,6 @@ public class Receptionist extends Stage {
     }
 
     private String getFlagsFromDatabase(String aInt) {
-
         String val = "";
         String sql = "Select orderCodes.orders "
                 + " FROM flags "
@@ -593,19 +744,20 @@ public class Receptionist extends Stage {
 
             ds.setUrl(Optional.ofNullable(url).orElseThrow(() -> new IllegalArgumentException("JDBC_DATABASE_URL is not set.")));
             Connection conn = ds.getConnection();
-
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-            //
+            
             List<PatientAlert> list = new ArrayList<PatientAlert>();
+            
             while (rs.next()) {
                 //What I receieve:  patientID, email, full_name, dob, address, insurance
                 val += rs.getString("orders") + ", ";
             }
-            //
+            
             rs.close();
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
@@ -623,17 +775,18 @@ public class Receptionist extends Stage {
 
             ds.setUrl(Optional.ofNullable(url).orElseThrow(() -> new IllegalArgumentException("JDBC_DATABASE_URL is not set.")));
             Connection conn = ds.getConnection();
-
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
-            //
+            
             while (rs.next()) {
                 //What I receieve:  patientID, email, full_name, dob, address, insurance
-                temp = new Patient(rs.getString("patientID"), rs.getString("email"), rs.getString("full_name"), rs.getString("dob"), rs.getString("address"), rs.getString("insurance"));
+                temp = new Patient(rs.getString("patientID"), rs.getString("email"), rs.getString("full_name"), rs.getString("username"), rs.getString("dob"), rs.getString("address"), rs.getString("insurance"));
             }
+            
             rs.close();
             stmt.close();
             conn.close();
+            
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
@@ -644,6 +797,7 @@ public class Receptionist extends Stage {
         String sql = "UPDATE appointments "
                 + " SET time = '" + string + "' "
                 + " WHERE appt_id = '" + apptID + "';";
+        
         App.executeSQLStatement(sql);
     }
 
@@ -652,6 +806,7 @@ public class Receptionist extends Stage {
                 + " SET statusCode = "
                 + "     (SELECT statusID FROM statusCode WHERE status = '" + status + "') "
                 + " WHERE appt_id = '" + appt.getApptID() + "';";
+        
         App.executeSQLStatement(sql);
 
         if (status.contains("Cancelled")) {
@@ -660,13 +815,7 @@ public class Receptionist extends Stage {
         }
     }
 
-    /* 
-    // Private Nested Classes Below.
-    //
-    //
-    //
-     */
-    //Private Nested Class 1
+    //Private Nested Class
     //For the Add Appointment
     private class AddAppointment extends Stage {
 
@@ -679,6 +828,7 @@ public class Receptionist extends Stage {
             TextField patFullName = new TextField("Full Name");
             TextField patEmail = new TextField("Email");
             Button check = new Button("Pull Patient Information");
+            
             //time && order
             Text text = new Text("Insert Date: ");
             Text text1 = new Text("Insert Time (HH:MM): ");
@@ -693,7 +843,9 @@ public class Receptionist extends Stage {
                 }
                 hours.getItems().add(temp);
             }
+            
             ComboBox minutes = new ComboBox();
+            
             for (int i = 0; i < 60; i += 15) {
                 String temp = "";
                 if (i < 10) {
@@ -703,20 +855,21 @@ public class Receptionist extends Stage {
                 }
                 minutes.getItems().add(temp);
             }
+            
             hours.setMinWidth(75);
             minutes.setMinWidth(75);
 
             Text colon = new Text(":");
             HBox time = new HBox(hours, colon, minutes);
-//            text.setPrefWidth(100);
-//            text1.setPrefWidth(150);
+//          text.setPrefWidth(100);
+//          text1.setPrefWidth(150);
 
             Text tutorial = new Text("Click to remove: ");
-//            tutorial.setPrefWidth(100);
+//          tutorial.setPrefWidth(100);
 
             Button submit = new Button("Submit");
             submit.setId("complete");
-            //
+            
             HBox initialContainer = new HBox(patFullName, patEmail, check);
             initialContainer.setSpacing(10);
             HBox hiddenContainer = new HBox(text, datePicker, text1, time);
@@ -745,6 +898,7 @@ public class Receptionist extends Stage {
             this.setScene(newScene);
             this.setWidth(750);
             hiddenOrderContainer.getChildren().add(tutorial);
+            
             check.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent e) {
@@ -758,7 +912,7 @@ public class Receptionist extends Stage {
                     if (pat != null) {
                         check.setVisible(false);
                         Text request = new Text("Orders Requested: ");
-//                        request.setPrefWidth(150);
+//                      request.setPrefWidth(150);
                         ComboBox dropdown = getPatOrders(pat.getPatientID());
                         dropdown.setPrefWidth(100);
 
@@ -816,7 +970,9 @@ public class Receptionist extends Stage {
         private void insertAppointment(String patientID, ArrayList<String> orders, String time) {
             String sql = "INSERT INTO appointments(patient_id, time, statusCode)"
                     + " VALUES ('" + patientID + "', '" + time + "', '1');\n";
+            
             App.executeSQLStatement(sql);
+            
             for (String x : orders) {
                 String sql1 = "INSERT INTO appointmentsOrdersConnector(apptID, orderCodeID)"
                         + " VALUES ("
@@ -828,31 +984,32 @@ public class Receptionist extends Stage {
                 String sql2 = "DELETE FROM patientOrders WHERE patientID = '" + patientID + "' AND orderCodeID = (SELECT orderID FROM orderCodes WHERE orders = '" + x + "')";
                 App.executeSQLStatement(sql2);
             }
+            
             this.close();
         }
 
         private ComboBox getPatOrders(String patientID) {
-
             String sql = "Select orderCodes.orders "
                     + " FROM patientOrders "
                     + " INNER JOIN orderCodes ON patientOrders.orderCodeID = orderCodes.orderID "
                     + " WHERE patientID = '" + patientID + "';";
+            
             ComboBox value = new ComboBox();
+            
             try {
 
                 Connection conn = ds.getConnection();
-
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(sql);
-                //
 
                 while (rs.next()) {
                     value.getItems().add(rs.getString("orders"));
                 }
-                //
+                
                 rs.close();
                 stmt.close();
                 conn.close();
+                
             } catch (SQLException e) {
                 System.out.println(e.getMessage());
             }
@@ -869,21 +1026,24 @@ public class Receptionist extends Stage {
             try {
 
                 Connection conn = ds.getConnection();
-
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(sql);
-                //
+                
                 while (rs.next()) {
                     //What I receieve:  patientID, email, full_name, dob, address, insurance
-                    temp = new Patient(rs.getString("patientID"), rs.getString("email"), rs.getString("full_name"), rs.getString("dob"), rs.getString("address"), rs.getString("insurance"));
+                    temp = new Patient(rs.getString("patientID"), rs.getString("email"), rs.getString("full_name"), rs.getString("username"), rs.getString("dob"), rs.getString("address"), rs.getString("insurance"));
                 }
+                
                 rs.close();
                 stmt.close();
                 conn.close();
+                
             } catch (SQLException e) {
                 System.out.println(e.getMessage());
             }
             return temp;
         }
     }
+    
+//</editor-fold>
 }
