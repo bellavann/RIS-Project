@@ -103,11 +103,8 @@ public class Receptionist extends Stage {
         //End Center
         
         //Buttons
-        logOut.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent e) {
-                logOut();
-            }
+        logOut.setOnAction((ActionEvent e) -> {
+            logOut();
         });
         
         //Set Scene and Structure
@@ -228,7 +225,7 @@ public class Receptionist extends Stage {
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
             
-            List<Patient> list = new ArrayList<Patient>();
+            List<Patient> list = new ArrayList<>();
             
             while (rs.next()) {
                 //What I receieve:  patientID, email, full_name, dob, address, insurance
@@ -238,12 +235,7 @@ public class Receptionist extends Stage {
 
             for (Patient z : list) {
                 z.placeholder.setText("Patient Overview");
-                z.placeholder.setOnAction(new EventHandler<ActionEvent>() {
-                    @Override
-                    public void handle(ActionEvent e) {
-
-                    }
-
+                z.placeholder.setOnAction((ActionEvent e) -> {
                 });
             }
 
@@ -312,17 +304,11 @@ public class Receptionist extends Stage {
 
         appointmentsContainer.getChildren().addAll(searchContainer);
         
-        addAppointment.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent e) {
-                addAppointment();
-            }
+        addAppointment.setOnAction((ActionEvent e) -> {
+            addAppointment();
         });
-        refreshTable.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent e) {
-                populateTableAppointments();
-            }
+        refreshTable.setOnAction((ActionEvent e) -> {
+            populateTableAppointments();
         });
     }
 
@@ -348,13 +334,13 @@ public class Receptionist extends Stage {
         updateAppt.setCellValueFactory(new PropertyValueFactory<>("placeholder"));
         
         //Set Column Widths
-        apptIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.09));
-        patientIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.09));
+        apptIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.08));
+        patientIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.08));
         firstNameCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
         timeCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
-        orderCol.prefWidthProperty().bind(table.widthProperty().multiply(0.4));
-        status.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
         orderCol.prefWidthProperty().bind(table.widthProperty().multiply(0.3));
+        status.prefWidthProperty().bind(table.widthProperty().multiply(0.15));
+        updateAppt.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
         
         //Add columns to table
         table.getColumns().addAll(apptIDCol, patientIDCol, firstNameCol, timeCol, orderCol, status, updateAppt);
@@ -368,7 +354,6 @@ public class Receptionist extends Stage {
                 + " FROM appointments"
                 + " INNER JOIN statusCode ON appointments.statusCode = statusCode.statusID "
                 + " INNER JOIN patients ON patients.patientID = appointments.patient_id"
-                + " WHERE statusCode < 3"
                 + " ORDER BY time ASC;";
 
         try {
@@ -378,7 +363,7 @@ public class Receptionist extends Stage {
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
             
-            List<Appointment> list = new ArrayList<Appointment>();
+            List<Appointment> list = new ArrayList<>();
 
             while (rs.next()) {
                 //What I receieve:  apptId, patientID, fullname, time, address, insurance, referral, status, order
@@ -389,11 +374,8 @@ public class Receptionist extends Stage {
 
             for (Appointment x : list) {
                 x.placeholder.setText("Update Appointment");
-                x.placeholder.setOnAction(new EventHandler<ActionEvent>() {
-                    @Override
-                    public void handle(ActionEvent e) {
-                        updateAppointment(x);
-                    }
+                x.placeholder.setOnAction((ActionEvent e) -> {
+                    updateAppointment(x);
                 });
             }
             
@@ -452,7 +434,7 @@ public class Receptionist extends Stage {
         Stage x = new Stage();
         x.initOwner(this);
         x.setTitle("Update Appointment");
-        x.setHeight(250);
+        x.setHeight(100);
         x.initModality(Modality.WINDOW_MODAL);
         
         Button updateTime = new Button("Reschedule Appointment");
@@ -463,107 +445,92 @@ public class Receptionist extends Stage {
         display.setSpacing(15);
 
         VBox container = new VBox(display);
+        container.setPadding(new Insets(10));
         Scene scene = new Scene(container);
         x.setScene(scene);
         x.setWidth(750);
         scene.getStylesheets().add("file:stylesheet.css");
         
         //Update Time
-        updateTime.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent e) {
-                container.getChildren().clear();
-
-                DatePicker datePicker = new DatePicker();
-                Text text = new Text("Insert Date: ");
-                Text text1 = new Text("Insert Time (HH:MM): ");
-                ComboBox hours = new ComboBox();
-                for (int i = 0; i < 24; i++) {
-                    String temp = "";
-                    if (i < 10) {
-                        temp = "0" + i;
-                    } else {
-                        temp = "" + i;
-                    }
-                    hours.getItems().add(temp);
+        updateTime.setOnAction((ActionEvent e) -> {
+            container.getChildren().clear();
+            
+            DatePicker datePicker = new DatePicker();
+            Text text = new Text("Insert Date: ");
+            Text text1 = new Text("Insert Time (HH:MM): ");
+            ComboBox hours = new ComboBox();
+            for (int i = 0; i < 24; i++) {
+                String temp = "";
+                if (i < 10) {
+                    temp = "0" + i;
+                } else {
+                    temp = "" + i;
                 }
-                ComboBox minutes = new ComboBox();
-                for (int i = 0; i < 60; i += 15) {
-                    String temp = "";
-                    if (i < 10) {
-                        temp = "0" + i;
-                    } else {
-                        temp = "" + i;
-                    }
-                    minutes.getItems().add(temp);
-                }
-                Text colon = new Text(":");
-                HBox time = new HBox(hours, colon, minutes);
-//              text.setPrefWidth(100);
-//              text1.setPrefWidth(150);
-                Button submit = new Button("Submit");
-                submit.setPrefWidth(100);
-                submit.setId("complete");
-
-                HBox hidden = new HBox(text, datePicker, text1, time, submit);
-                hidden.setSpacing(15);
-                container.getChildren().add(hidden);
-                submit.setOnAction(new EventHandler<ActionEvent>() {
-                    @Override
-                    public void handle(ActionEvent e) {
-                        String full = hours.getValue().toString() + ":" + minutes.getValue().toString();
-                        //validation here
-                        if (!InputValidation.validateFuture(datePicker.getValue().toString())) {
-                            return;
-                        }
-                        if (!InputValidation.validateFutureTime(datePicker.getValue().toString(), full)) {
-                            return;
-                        }
-                        //end validation
-                        updateTime(datePicker.getValue().toString() + " " + full, appt.getApptID());
-                        x.close();
-                    }
-
-                });
+                hours.getItems().add(temp);
             }
+            ComboBox minutes = new ComboBox();
+            for (int i = 0; i < 60; i += 15) {
+                String temp = "";
+                if (i < 10) {
+                    temp = "0" + i;
+                } else {
+                    temp = "" + i;
+                }
+                minutes.getItems().add(temp);
+            }
+            Text colon = new Text(":");
+            HBox time = new HBox(hours, colon, minutes);
+//          text.setPrefWidth(100);
+//          text1.setPrefWidth(150);
+            Button submit = new Button("Submit");
+            submit.setPrefWidth(100);
+            submit.setId("complete");
+
+            HBox hidden = new HBox(text, datePicker, text1, time, submit);
+            hidden.setSpacing(15);
+            container.getChildren().add(hidden);
+            submit.setOnAction((ActionEvent e1) -> {
+                String full = hours.getValue().toString() + ":" + minutes.getValue().toString();
+                //validation here
+                if (!InputValidation.validateFuture(datePicker.getValue().toString())) {
+                    return;
+                }
+                if (!InputValidation.validateFutureTime(datePicker.getValue().toString(), full)) {
+                    return;
+                }
+                //end validation
+                updateTime(datePicker.getValue().toString() + " " + full, appt.getApptID());
+                x.close();
+            });
         });
         
         //Update Status
-        updateStatus.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent e) {
-                container.getChildren().clear();
-
-                ComboBox dropdown = new ComboBox();
-                dropdown.getItems().addAll("Patient Did Not Show", "Appointment Scheduled", "Patient Checked In", "Patient received by Technician", "Patient Cancelled", "Faculty Cancelled");
-
-                dropdown.setValue(appt.getStatus());
-                Button submit = new Button("Submit");
-                submit.setId("complete");
-
-                HBox hidden = new HBox(dropdown, submit);
-                hidden.setSpacing(15);
-                container.getChildren().add(hidden);
-                submit.setOnAction(new EventHandler<ActionEvent>() {
-                    @Override
-                    public void handle(ActionEvent e) {
-                        if (!dropdown.getValue().toString().isBlank()) {
-                            updateStatus(dropdown.getValue().toString(), appt);
-                            x.close();
-                        }
-                    }
-                });
-            }
+        updateStatus.setOnAction((ActionEvent e) -> {
+            container.getChildren().clear();
+            
+            ComboBox dropdown = new ComboBox();
+            dropdown.getItems().addAll("Patient Did Not Show", "Appointment Scheduled", "Patient Checked In", "Patient received by Technician", "Patient Cancelled", "Faculty Cancelled");
+            
+            dropdown.setValue(appt.getStatus());
+            Button submit = new Button("Submit");
+            submit.setId("complete");
+            
+            HBox hidden = new HBox(dropdown, submit);
+            hidden.setSpacing(15);
+            container.getChildren().add(hidden);
+            submit.setOnAction((ActionEvent e1) -> {
+                if (!dropdown.getValue().toString().isBlank()) {
+                    updateStatus(dropdown.getValue().toString(), appt);
+                    x.close();
+                }
+            });
         });
         
         //Update Patient
-        updatePatient.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent e) {
-                Patient pat = pullPatientInfo(appt.getPatientID());
-                x.close();
-                updatePatient(pat);
-            }
+        updatePatient.setOnAction((ActionEvent e) -> {
+            Patient pat = pullPatientInfo(appt.getPatientID());
+            x.close();
+            updatePatient(pat);
         });
 
         x.showAndWait();
@@ -575,6 +542,7 @@ public class Receptionist extends Stage {
         ArrayList<PatientAlert> allergies = populateAllergies(z);
 
         VBox container = new VBox();
+        container.setPadding(new Insets(10));
         Stage x = new Stage();
         x.initOwner(this);
         x.initModality(Modality.WINDOW_MODAL);
@@ -584,6 +552,9 @@ public class Receptionist extends Stage {
         x.setHeight(400);
         x.setWidth(300);
         scene.getStylesheets().add("file:stylesheet.css");
+        
+        Text patientName = new Text(z.getFullName());
+        HBox nameContainer = new HBox(patientName);
         
         Text emailText = new Text("Email: ");
         TextField email = new TextField(z.getEmail());
@@ -600,8 +571,8 @@ public class Receptionist extends Stage {
         Button submit = new Button("Submit");
         submit.setId("complete");
 
-        ArrayList<PatientAlert> alertsToAddForThisPatient = new ArrayList<PatientAlert>();
-        ArrayList<PatientAlert> alertsToRemoveForThisPatient = new ArrayList<PatientAlert>();
+        ArrayList<PatientAlert> alertsToAddForThisPatient = new ArrayList<>();
+        ArrayList<PatientAlert> alertsToRemoveForThisPatient = new ArrayList<>();
         VBox patientAlertContainer = new VBox();
         
         for (PatientAlert a : paList) {
@@ -619,16 +590,13 @@ public class Receptionist extends Stage {
 
             patientAlertContainer.getChildren().add(temp);
 
-            dropdown.setOnAction(new EventHandler() {
-                @Override
-                public void handle(Event eh) {
-                    if (dropdown.getValue().toString().equals("Yes")) {
-                        alertsToAddForThisPatient.add(a);
-                        alertsToRemoveForThisPatient.remove(a);
-                    } else if (dropdown.getValue().toString().equals("No")) {
-                        alertsToAddForThisPatient.remove(a);
-                        alertsToRemoveForThisPatient.add(a);
-                    }
+            dropdown.setOnAction((Event eh) -> {
+                if (dropdown.getValue().toString().equals("Yes")) {
+                    alertsToAddForThisPatient.add(a);
+                    alertsToRemoveForThisPatient.remove(a);
+                } else if (dropdown.getValue().toString().equals("No")) {
+                    alertsToAddForThisPatient.remove(a);
+                    alertsToRemoveForThisPatient.add(a);
                 }
             });
         }
@@ -636,38 +604,35 @@ public class Receptionist extends Stage {
         ScrollPane s1 = new ScrollPane(patientAlertContainer);
         s1.setPrefHeight(200);
 
-        container.getChildren().addAll(emailContainer, addressContainer, insuranceContainer, s1, submit);
+        container.getChildren().addAll(nameContainer, emailContainer, addressContainer, insuranceContainer, s1, submit);
         x.show();
 
-        submit.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent eh) {
-                //Validation
-                if (!InputValidation.validateEmail(email.getText())) {
-                    return;
-                }
-                if (!InputValidation.validateAddress(address.getText())) {
-                    return;
-                }
-                if (!InputValidation.validateInsurance(insurance.getText())) {
-                    return;
-                }
-                //End Validation
-                z.setAddress(address.getText());
-                z.setEmail(email.getText());
-                z.setInsurance(insurance.getText());
-                String sql = "UPDATE patients SET email = '" + email.getText() + "', address = '" + address.getText() + "', insurance = '" + insurance.getText() + "' WHERE patientID = '" + z.getPatientID() + "';";
-                App.executeSQLStatement(sql);
-                for (PatientAlert a : alertsToAddForThisPatient) {
-                    sql = "INSERT INTO alertsPatientConnector VALUES ( '" + z.getPatientID() + "', '" + a.getAlertID() + "');";
-                    App.executeSQLStatement(sql);
-                }
-                for (PatientAlert a : alertsToRemoveForThisPatient) {
-                    sql = "DELETE FROM alertsPatientConnector WHERE patientID = '" + z.getPatientID() + "' AND alertID = '" + a.getAlertID() + "';";
-                    App.executeSQLStatement(sql);
-                }
-                x.close();
+        submit.setOnAction((ActionEvent eh) -> {
+            //Validation
+            if (!InputValidation.validateEmail(email.getText())) {
+                return;
             }
+            if (!InputValidation.validateAddress(address.getText())) {
+                return;
+            }
+            if (!InputValidation.validateInsurance(insurance.getText())) {
+                return;
+            }
+            //End Validation
+            z.setAddress(address.getText());
+            z.setEmail(email.getText());
+            z.setInsurance(insurance.getText());
+            String sql = "UPDATE patients SET email = '" + email.getText() + "', address = '" + address.getText() + "', insurance = '" + insurance.getText() + "' WHERE patientID = '" + z.getPatientID() + "';";
+            App.executeSQLStatement(sql);
+            for (PatientAlert a : alertsToAddForThisPatient) {
+                sql = "INSERT INTO alertsPatientConnector VALUES ( '" + z.getPatientID() + "', '" + a.getAlertID() + "');";
+                App.executeSQLStatement(sql);
+            }
+            for (PatientAlert a : alertsToRemoveForThisPatient) {
+                sql = "DELETE FROM alertsPatientConnector WHERE patientID = '" + z.getPatientID() + "' AND alertID = '" + a.getAlertID() + "';";
+                App.executeSQLStatement(sql);
+            }
+            x.close();
         });
     }
 
@@ -747,7 +712,7 @@ public class Receptionist extends Stage {
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
             
-            List<PatientAlert> list = new ArrayList<PatientAlert>();
+            List<PatientAlert> list = new ArrayList<>();
             
             while (rs.next()) {
                 //What I receieve:  patientID, email, full_name, dob, address, insurance
@@ -820,20 +785,22 @@ public class Receptionist extends Stage {
     private class AddAppointment extends Stage {
 
         Patient pat = null;
-        ArrayList<String> orders = new ArrayList<String>();
+        ArrayList<String> orders = new ArrayList<>();
         DatePicker datePicker = new DatePicker();
 
         //Class Variables
         AddAppointment() {
+            Label nameLabel = new Label("Full Name: ");
             TextField patFullName = new TextField("Full Name");
+            Label emailLabel = new Label("Email: ");
             TextField patEmail = new TextField("Email");
             Button check = new Button("Pull Patient Information");
             
             //time && order
             Text text = new Text("Insert Date: ");
             Text text1 = new Text("Insert Time (HH:MM): ");
+            
             ComboBox hours = new ComboBox();
-
             for (int i = 0; i < 24; i++) {
                 String temp = "";
                 if (i < 10) {
@@ -844,8 +811,7 @@ public class Receptionist extends Stage {
                 hours.getItems().add(temp);
             }
             
-            ComboBox minutes = new ComboBox();
-            
+            ComboBox minutes = new ComboBox();            
             for (int i = 0; i < 60; i += 15) {
                 String temp = "";
                 if (i < 10) {
@@ -861,16 +827,13 @@ public class Receptionist extends Stage {
 
             Text colon = new Text(":");
             HBox time = new HBox(hours, colon, minutes);
-//          text.setPrefWidth(100);
-//          text1.setPrefWidth(150);
 
             Text tutorial = new Text("Click to remove: ");
-//          tutorial.setPrefWidth(100);
 
             Button submit = new Button("Submit");
             submit.setId("complete");
             
-            HBox initialContainer = new HBox(patFullName, patEmail, check);
+            HBox initialContainer = new HBox(nameLabel, patFullName, emailLabel, patEmail, check);
             initialContainer.setSpacing(10);
             HBox hiddenContainer = new HBox(text, datePicker, text1, time);
             hiddenContainer.setSpacing(10);
@@ -899,74 +862,102 @@ public class Receptionist extends Stage {
             this.setWidth(750);
             hiddenOrderContainer.getChildren().add(tutorial);
             
-            check.setOnAction(new EventHandler<ActionEvent>() {
-                @Override
-                public void handle(ActionEvent e) {
-                    if (!InputValidation.validateName(patFullName.getText())) {
-                        return;
-                    }
-                    if (!InputValidation.validateEmail(patEmail.getText())) {
-                        return;
-                    }
-                    pat = pullPatientInfo(patFullName.getText(), patEmail.getText());
-                    if (pat != null) {
-                        check.setVisible(false);
-                        Text request = new Text("Orders Requested: ");
-//                      request.setPrefWidth(150);
-                        ComboBox dropdown = getPatOrders(pat.getPatientID());
-                        dropdown.setPrefWidth(100);
-
-                        hiddenContainer.getChildren().addAll(request, dropdown);
-                        hiddenContainer.setVisible(true);
-                        hiddenOrderContainer.setVisible(true);
-                        hiddenContainer1.setVisible(true);
-
-                        dropdown.setOnAction(new EventHandler<ActionEvent>() {
-                            @Override
-                            public void handle(ActionEvent t) {
-                                orders.add(dropdown.getValue().toString());
-                                Button temp = new Button(dropdown.getValue().toString());
-                                hiddenOrderContainer.getChildren().add(temp);
-                                temp.setOnAction(new EventHandler<ActionEvent>() {
-                                    @Override
-                                    public void handle(ActionEvent t) {
-                                        if (!dropdown.getValue().toString().isBlank()) {
-                                            orders.remove(temp.getText());
-                                            hiddenOrderContainer.getChildren().remove(temp);
-                                        }
-                                    }
-                                });
-                            }
-                        });
-
-                    } else {
-                        Alert a = new Alert(Alert.AlertType.INFORMATION);
-                        a.setTitle("Error");
-                        a.setHeaderText("Try Again");
-                        a.setContentText("Patient not found\nPlease verify all information or contact the patient's Referral Doctor\n");
-                        a.show();
-                        return;
-                    }
+            check.setOnAction((ActionEvent e) -> {
+                if (!InputValidation.validateName(patFullName.getText())) {
+                    return;
                 }
+                if (!InputValidation.validateEmail(patEmail.getText())) {
+                    return;
+                }
+                pat = pullPatientInfo(patFullName.getText(), patEmail.getText());
+                if (pat != null) {
+                    check.setVisible(false);
+                    Text request = new Text("Orders Requested: ");
+                    ComboBox dropdown = getPatOrders(pat.getPatientID());
+                    dropdown.setPrefWidth(100);
 
+                    hiddenContainer.getChildren().addAll(request, dropdown);
+                    hiddenContainer.setVisible(true);
+                    hiddenOrderContainer.setVisible(true);
+                    hiddenContainer1.setVisible(true);
+                        
+                    //do not use lambda expression here
+                    dropdown.setOnAction(new EventHandler<ActionEvent>() {
+                        @Override
+                        public void handle(ActionEvent t) {
+                            orders.add(dropdown.getValue().toString());
+                            Button temp = new Button(dropdown.getValue().toString());
+                            hiddenOrderContainer.getChildren().add(temp);
+                            temp.setOnAction((ActionEvent t1) -> {
+                                if (!dropdown.getValue().toString().isBlank()) {
+                                    orders.remove(temp.getText());
+                                    hiddenOrderContainer.getChildren().remove(temp);
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    Alert a = new Alert(Alert.AlertType.INFORMATION);
+                    a.setTitle("Error");
+                    a.setHeaderText("Try Again");
+                    a.setContentText("Patient not found\nPlease verify all information or contact the patient's Referral Doctor\n");
+                    a.show();
+                    return;
+                }
             });
 
-            submit.setOnAction(new EventHandler<ActionEvent>() {
-                @Override
-                public void handle(ActionEvent e) {
-                    String full = hours.getValue().toString() + ":" + minutes.getValue().toString();
-                    if (!InputValidation.validateFuture(datePicker.getValue().toString())) {
-                        return;
-                    }
-                    if (!InputValidation.validateFutureTime(datePicker.getValue().toString(), full)) {
-                        return;
-                    }
-                    insertAppointment(pat.getPatientID(), orders, datePicker.getValue().toString() + " " + full);
+            submit.setOnAction((ActionEvent e) -> {
+                String full = hours.getValue().toString() + ":" + minutes.getValue().toString();
+                if (!InputValidation.validateFuture(datePicker.getValue().toString())) {
+                    return;
+                } 
+                if (!InputValidation.validateFutureTime(datePicker.getValue().toString(), full)) {
+                    return;
+                } 
+                //check if appointment exists
+                Appointment temp = checkDatabaseForAppt(datePicker.getValue().toString() + " " + full);
+                if (temp != null){
+                    Alert a = new Alert(Alert.AlertType.INFORMATION);
+                    a.setTitle("Error");
+                    a.setHeaderText("Try Again");
+                    a.setContentText("There is already an appointment at this time.");
+                    a.show();
+                    return;
                 }
+                
+                insertAppointment(pat.getPatientID(), orders, datePicker.getValue().toString() + " " + full);
             });
 
         }
 
+        private Appointment checkDatabaseForAppt(String date) {
+            Appointment temp = null;
+
+            String sql = "Select * "
+                    + " FROM appointments"
+                    + " WHERE time = '" + date + "';";
+
+            try {
+
+                Connection conn = ds.getConnection();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql);
+
+                while (rs.next()) {
+                    //What I receieve:  patientID, email, full_name, dob, address, insurance
+                    temp = new Appointment(rs.getString("appt_id"), rs.getString("patient_id"), rs.getString("time"), rs.getString("statusCode"), getPatOrders(rs.getString("patient_id"), rs.getString("appt_id")));
+                }
+                
+                rs.close();
+                stmt.close();
+                conn.close();
+
+            } catch (SQLException e) {
+                System.out.println(e.getMessage());
+            }
+            return temp;
+        }
+        
         private void insertAppointment(String patientID, ArrayList<String> orders, String time) {
             String sql = "INSERT INTO appointments(patient_id, time, statusCode)"
                     + " VALUES ('" + patientID + "', '" + time + "', '1');\n";
@@ -1015,7 +1006,35 @@ public class Receptionist extends Stage {
             }
             return value;
         }
+        
+        private String getPatOrders(String patientID, String aInt) {
+        String sql = "Select orderCodes.orders "
+                + " FROM appointmentsOrdersConnector "
+                + " INNER JOIN orderCodes ON appointmentsOrdersConnector.orderCodeID = orderCodes.orderID "
+                + " WHERE apptID = '" + aInt + "';";
 
+        String value = "";
+        
+        try {
+
+            Connection conn = ds.getConnection();
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            
+            while (rs.next()) {
+                value += rs.getString("orders") + ", ";
+            }
+            
+            rs.close();
+            stmt.close();
+            conn.close();
+            
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return value;
+    }
+        
         private Patient pullPatientInfo(String patFullName, String patEmail) {
             Patient temp = null;
 
@@ -1046,4 +1065,5 @@ public class Receptionist extends Stage {
     }
     
 //</editor-fold>
+    
 }

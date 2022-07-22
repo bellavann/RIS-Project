@@ -200,6 +200,14 @@ public class ReferralDoctor extends Stage {
         DOBCol.setCellValueFactory(new PropertyValueFactory<>("dob"));
         updateStatusCol.setCellValueFactory(new PropertyValueFactory<>("placeholder"));
 
+        //Set Column Widths
+        patientIDCol.prefWidthProperty().bind(patientsTable.widthProperty().multiply(0.09));
+        fullNameCol.prefWidthProperty().bind(patientsTable.widthProperty().multiply(0.1));
+        usernameCol.prefWidthProperty().bind(patientsTable.widthProperty().multiply(0.1));
+        emailCol.prefWidthProperty().bind(patientsTable.widthProperty().multiply(0.2));
+        DOBCol.prefWidthProperty().bind(patientsTable.widthProperty().multiply(0.1));
+        updateStatusCol.prefWidthProperty().bind(patientsTable.widthProperty().multiply(0.2));
+        
         patientsTable.setStyle("-fx-background-color: #25A18E; -fx-text-fill: WHITE; ");
         
         //Add columns to table
@@ -480,7 +488,7 @@ public class ReferralDoctor extends Stage {
         
         //Patient Info
         Label text = new Label("Name: " + z.getFullName() + "\t\t Email: " + z.getEmail() + "\t\t Date of Birth: " + z.getDob());
-        Label text1 = new Label("Address: " + z.getAddress() + "\t\t Insurance Provider: " + z.getInsurance() + " ");
+        Label text1 = new Label("Usernmae: " + z.getUsername() + "\t\tAddress: " + z.getAddress() + "\t\t Insurance Provider: " + z.getInsurance() + " ");
         Label text2 = new Label("Orders Requested: " + getPatOrders(z.getPatientID()));
         VBox patInfo = new VBox(text, text1, text2);
         patInfo.setAlignment(Pos.CENTER);
@@ -852,7 +860,7 @@ public class ReferralDoctor extends Stage {
                         Alert a = new Alert(Alert.AlertType.INFORMATION);
                         a.setTitle("Patient Alert");
                         a.setHeaderText(dropdown.getValue().toString());
-                        a.setContentText("Patient is allergic to procedure. \n");
+                        a.setContentText("Patient has a safety concern with procedure. \n");
                         a.show();
                         return;
                     }
