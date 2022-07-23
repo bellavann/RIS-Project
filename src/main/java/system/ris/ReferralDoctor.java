@@ -488,7 +488,7 @@ public class ReferralDoctor extends Stage {
         
         //Patient Info
         Label text = new Label("Name: " + z.getFullName() + "\t\t Email: " + z.getEmail() + "\t\t Date of Birth: " + z.getDob());
-        Label text1 = new Label("Usernmae: " + z.getUsername() + "\t\tAddress: " + z.getAddress() + "\t\t Insurance Provider: " + z.getInsurance() + " ");
+        Label text1 = new Label("Username: " + z.getUsername() + "\t\tAddress: " + z.getAddress() + "\t\t Insurance Provider: " + z.getInsurance() + " ");
         Label text2 = new Label("Orders Requested: " + getPatOrders(z.getPatientID()));
         VBox patInfo = new VBox(text, text1, text2);
         patInfo.setAlignment(Pos.CENTER);

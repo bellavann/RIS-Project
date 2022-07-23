@@ -2,7 +2,10 @@ package datastorage;
 
 import javafx.scene.control.Button;
 
+
+
 public class Patient {
+    
 
     String patientID;
     String email, fullName, username, dob, address, insurance;

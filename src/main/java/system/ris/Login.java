@@ -3,6 +3,7 @@ package system.ris;
 import static system.ris.App.ds;
 import static system.ris.App.url;
 import datastorage.InputValidation;
+import datastorage.Patient;
 import datastorage.User;
 import java.io.BufferedReader;
 import java.io.File;
@@ -45,13 +46,19 @@ public class Login extends Stage {
     //Creating all individual elements in scene
     //Create Username/Password Label and Textbox 
 
+    private Label textTitle = new Label("User Login");
     private Label textUsername = new Label("Enter your Username:");
     private TextField inputUsername = new TextField("here");
     private Label textPassword = new Label("Enter your Password:");
     private PasswordField inputPassword = new PasswordField();
     
+    private Label textTitle2 = new Label("Patient Login");
+    private Label textUsername2 = new Label("Enter your Username:");
+    private TextField inputUsername2 = new TextField("here");
+    
     //Create Login Button. Logic for Button at End.
     private Button btnLogin = new Button("Login");
+    private Button btnLogin2 = new Button("Login");
     private GridPane grid = new GridPane();
     VBox center = new VBox();
     Scene scene = new Scene(center, 1000, 1000);
@@ -68,9 +75,13 @@ public class Login extends Stage {
         btnLogin.setOnAction((ActionEvent e) -> {
             loginCheck();
         });
+        btnLogin2.setOnAction((ActionEvent e) -> {
+            patientLoginCheck();
+        });
         
         inputUsername.setId("textfield");
         inputPassword.setId("textfield");
+        inputUsername2.setId("textfield");
         center.setId("loginpage");
         center.setSpacing(10);
         
@@ -99,16 +110,23 @@ public class Login extends Stage {
         //Gridpane does what Gridpane does best
         //Everything's on a grid. 
         //Follows-> Column (x), then Row (y)
-        grid.setAlignment(Pos.CENTER);
-        GridPane.setConstraints(textUsername, 0, 0);
-        GridPane.setConstraints(inputUsername, 2, 0);
-        GridPane.setConstraints(textPassword, 0, 2);
-        GridPane.setConstraints(inputPassword, 2, 2);
-        GridPane.setConstraints(btnLogin, 1, 3, 3, 1);
+        grid.setAlignment(Pos.CENTER_LEFT);
+        GridPane.setConstraints(textTitle, 115, 1);
+        GridPane.setConstraints(textUsername, 115, 2);
+        GridPane.setConstraints(inputUsername, 116, 2);
+        GridPane.setConstraints(textPassword, 115, 4);
+        GridPane.setConstraints(inputPassword, 116, 4);
+        GridPane.setConstraints(btnLogin, 115, 5, 3, 2);
+        
+        GridPane.setConstraints(textTitle2, 160, 1);
+        GridPane.setConstraints(textUsername2, 160, 2);
+        GridPane.setConstraints(inputUsername2, 161, 2);
+        GridPane.setConstraints(btnLogin2, 160, 3, 3, 2);
         grid.setPadding(new Insets(5));
         grid.setHgap(5);
         grid.setVgap(5);
-        grid.getChildren().addAll(textUsername, inputUsername, textPassword, inputPassword, btnLogin);
+        grid.getChildren().addAll(textTitle, textUsername, inputUsername, textPassword, inputPassword, btnLogin, textTitle2, textUsername2, inputUsername2, btnLogin2);
+        
     }
 
     /*
@@ -189,6 +207,73 @@ public class Login extends Stage {
                 this.hide();
             } else if (App.user.getRole() == 1) {
                 Stage x = new Administrator();
+                x.show();
+                x.setMaximized(true);
+                this.hide();
+            }
+            
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+
+            Alert a = new Alert(AlertType.INFORMATION);
+            a.setTitle("Error");
+            if (e.getMessage().contains("password authentication failed")) {
+                a.setHeaderText("Try Again");
+                a.setContentText("URL Username/Password incorrect. Please correct the url.\n(Restart the Program)");
+                File credentials = new File("../credentials.ris");
+                credentials.delete();
+            } else {
+                a.setHeaderText("Try Again");
+                a.setContentText("Username / Password not found. \nPlease contact an administrator if problem persists. ");
+            }
+            a.show();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            Alert a = new Alert(AlertType.INFORMATION);
+            a.setTitle("Error");
+            a.setHeaderText("Try Again");
+            a.setContentText("Username / Password not found. \nPlease contact an administrator if problem persists. ");
+            a.show();
+        }
+    }
+    
+    private void patientLoginCheck() {
+        String username = inputUsername2.getText();
+
+        if (!InputValidation.validateUsername(username)) {
+            return;
+        }
+
+        String sql = "Select docPatientConnector.patientID, patients.email, patients.full_name, patients.username, patients.dob, patients.address, patients.insurance"
+                + " FROM docPatientConnector"
+                + " INNER JOIN patients ON docPatientConnector.patientID = patients.patientID"
+                + " WHERE patients.email = '" + username + "';";
+
+        try {
+            
+            Connection conn = ds.getConnection();
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+
+            while (rs.next()) {
+                String userId = rs.getString("patientID");
+                String fullName = rs.getString("full_name");
+                App.user = new User(userId, fullName, 7);
+                App.user.setEmail(rs.getString("email"));
+                App.user.setUsername(rs.getString("username"));
+                
+            }
+
+            rs.close();
+            stmt.close();
+            conn.close();
+            
+            
+            if (App.user == null) {
+                throw new SQLException("Invalid Username / Password");
+            }
+            else {
+                Stage x = new PatientUser();
                 x.show();
                 x.setMaximized(true);
                 this.hide();
