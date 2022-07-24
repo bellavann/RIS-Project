@@ -5,6 +5,9 @@ module system.ris {
     //JavaFX
     requires javafx.controls;
     requires javafx.graphics;
+    
+    //JavaX
+    requires java.desktop;
 
     //SQL
     requires java.sql;
