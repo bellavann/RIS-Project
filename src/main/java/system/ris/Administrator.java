@@ -426,6 +426,9 @@ public class Administrator extends Stage {
             }
 
             private void updatePassword() {
+                if (!InputValidation.validatePassword(input.getText())) {
+                    return;
+                }
                 int result = JOptionPane.showConfirmDialog(null, "Are you sure you want to change this password?", "Update Password", JOptionPane.DEFAULT_OPTION);
                 // 0 = ok
 
@@ -534,6 +537,7 @@ public class Administrator extends Stage {
         TableColumn emailCol = new TableColumn("Email");
         TableColumn DOBCol = new TableColumn("Date of Birth");
         TableColumn insuranceCol = new TableColumn("Insurance");
+        TableColumn buttonCol = new TableColumn("Update Patient Password");
 
         //All of the Value setting
         patientIDCol.setCellValueFactory(new PropertyValueFactory<>("patientID"));
@@ -542,6 +546,7 @@ public class Administrator extends Stage {
         emailCol.setCellValueFactory(new PropertyValueFactory<>("email"));
         DOBCol.setCellValueFactory(new PropertyValueFactory<>("dob"));
         insuranceCol.setCellValueFactory(new PropertyValueFactory<>("insurance"));
+        buttonCol.setCellValueFactory(new PropertyValueFactory<>("placeholder"));
 
         //Set Column Widths
         patientIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.09));
@@ -550,11 +555,12 @@ public class Administrator extends Stage {
         emailCol.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
         DOBCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
         insuranceCol.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
+        buttonCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
 
         table.setStyle("-fx-background-color: #25A18E; -fx-text-fill: WHITE; ");
         
         //Add columns to table
-        table.getColumns().addAll(patientIDCol, fullNameCol, usernameCol, emailCol, DOBCol, insuranceCol);
+        table.getColumns().addAll(patientIDCol, fullNameCol, usernameCol, emailCol, DOBCol, insuranceCol, buttonCol);
     }
 
     private void populatePatientsTable() {
@@ -581,9 +587,8 @@ public class Administrator extends Stage {
             }
 
             for (Patient z : list) {
-                z.placeholder.setText("Patient Overview");
-                z.placeholder.setOnAction((ActionEvent e) -> {
-                });
+                z.placeholder.setText("Update Password");
+                z.placeholder.setOnAction(eh -> updatePatientPW(z));
             }
 
             flPatient = new FilteredList(FXCollections.observableList(list), p -> true);
@@ -598,6 +603,44 @@ public class Administrator extends Stage {
         }
     }
 
+    public void updatePatientPW(Patient z){
+        Stage x = new Stage();
+        x.initOwner(this);
+        x.setTitle("Update User");
+        x.initModality(Modality.WINDOW_MODAL);
+        BorderPane y = new BorderPane();
+        
+        Label passwordLabel = new Label("New Password: ");
+        TextField patientPassword = new TextField("");
+        Button submit = new Button("Submit");
+        
+        VBox center = new VBox(passwordLabel, patientPassword, submit);
+        center.setSpacing(10);
+        center.setAlignment(Pos.CENTER);
+        center.setPadding(new Insets(10));
+        y.setCenter(center);
+        y.getStylesheets().add("file:stylesheet.css");
+        x.setScene(new Scene(y));
+        x.show();
+        
+        submit.setId("complete");
+        submit.setOnAction((ActionEvent eh) -> {
+            if (!InputValidation.validatePassword(patientPassword.getText())) {
+                return;
+            }
+            
+            int result = JOptionPane.showConfirmDialog(null, "Are you sure you want to change this password?", "Update Password", JOptionPane.DEFAULT_OPTION);
+                // 0 = ok
+
+                if (result == 0) {
+                    String sql = "UPDATE users SET password = '" + patientPassword.getText() + "' WHERE user_id = '" + z.getPatientID() + "';";
+                    App.executeSQLStatement(sql);
+                    patientsPageView();
+                    x.close();
+                }
+        });
+    }
+    
     //</editor-fold>
 
 //<editor-fold defaultstate="collapsed" desc="Appointments Section">
