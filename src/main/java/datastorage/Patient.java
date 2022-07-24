@@ -2,10 +2,7 @@ package datastorage;
 
 import javafx.scene.control.Button;
 
-
-
 public class Patient {
-    
 
     String patientID;
     String email, fullName, username, dob, address, insurance;
@@ -23,6 +20,11 @@ public class Patient {
         this.dob = dob;
         this.address = address;
         this.insurance = insurance;
+    }
+    
+    public Patient(String patientID, String fullName) {
+        this.patientID = patientID;
+        this.fullName = fullName;
     }
 
     public String getPatientID() {

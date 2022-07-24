@@ -291,20 +291,37 @@ public class Administrator extends Stage {
         x.setTitle("Add User");
         x.initModality(Modality.WINDOW_MODAL);
         BorderPane y = new BorderPane();
+        
+        Label emailLabel = new Label("Email: ");
         TextField email = new TextField("Email");
+        HBox emailContainer = new HBox(emailLabel, email);
+        emailContainer.setSpacing(10);
+        
+        Label nameLabel = new Label("Full Name");
         TextField name = new TextField("Full Name");
+        HBox nameContainer = new HBox(nameLabel, name);
+        nameContainer.setSpacing(10);
+        
+        Label usernameLabel = new Label("Username: ");
         TextField username = new TextField("username");
+        HBox usernameContainer = new HBox(usernameLabel, username);
+        usernameContainer.setSpacing(10);
+        
+        Label passwordLabel = new Label("Password: ");
         TextField password = new TextField("password");
+        HBox passwordContainer = new HBox(passwordLabel, password);
+        passwordContainer.setSpacing(10);
+        
         ComboBox role = new ComboBox();
         role.setValue("Administrator");
         role.getItems().addAll("Administrator", "Referral Doctor", "Receptionist", "Technician", "Radiologist", "Biller");
+        HBox roleContainer = new HBox(role);
+        roleContainer.setSpacing(10);
+        
         Button submit = new Button("Submit");
         submit.setId("complete");
 
-        HBox c = new HBox(email, name);
-        HBox c1 = new HBox(username, password);
-        HBox c2 = new HBox(role);
-        VBox center = new VBox(c, c1, c2, submit);
+        VBox center = new VBox(nameContainer, emailContainer, usernameContainer, passwordContainer, roleContainer, submit);
 
         center.setAlignment(Pos.CENTER);
         center.setPadding(new Insets(10));
@@ -363,7 +380,7 @@ public class Administrator extends Stage {
         Label txt = new Label("Insert Value Here:");
         TextField input = new TextField("...");
         input.setPrefWidth(200);
-        HBox hidden = new HBox(txt, input);
+        VBox hidden = new VBox(txt, input);
         hidden.setVisible(false);
         
         VBox center = new VBox(buttonContainer, hidden, submit);
@@ -402,8 +419,8 @@ public class Administrator extends Stage {
             public void handle(ActionEvent eh) {
                 center.getChildren().remove(buttonContainer);
                 hidden.setVisible(true);
-                txt.setText("Password: ");
-                input.setText("Good passwords are long but easy to remember, try phrases with numbers and special chars mixed in.");
+                txt.setText("Password: (Good passwords are long but easy to remember, try phrases with numbers and special chars mixed in.)");
+                input.setText("");
                 submit.setId("complete");
                 submit.setOnAction(eh2 -> updatePassword());
             }
@@ -411,7 +428,7 @@ public class Administrator extends Stage {
             private void updatePassword() {
                 int result = JOptionPane.showConfirmDialog(null, "Are you sure you want to change this password?", "Update Password", JOptionPane.DEFAULT_OPTION);
                 // 0 = ok
-                
+
                 if (result == 0) {
                     String sql = "UPDATE users SET password = '" + input.getText() + "' WHERE user_id = '" + z.getUserID() + "';";
                     App.executeSQLStatement(sql);
@@ -807,9 +824,14 @@ public class Administrator extends Stage {
                 z.placeholder.setText("Delete");
                 z.placeholder.setId("cancel");
                 z.placeholder.setOnAction((ActionEvent e) -> {
-                    String sql1 = "DELETE FROM orderCodes WHERE orderID = '" + z.getOrderID() + "' ";
-                    App.executeSQLStatement(sql1);
-                    populateTableModalities();
+                    int result = JOptionPane.showConfirmDialog(null, "Are you sure you want to change this password?", "Update Password", JOptionPane.DEFAULT_OPTION);
+                    // 0 = ok
+
+                    if (result == 0) {
+                        String sql1 = "DELETE FROM orderCodes WHERE orderID = '" + z.getOrderID() + "' ";
+                        App.executeSQLStatement(sql1);
+                        populateTableModalities();
+                    }
                 });
             }
 
@@ -827,13 +849,13 @@ public class Administrator extends Stage {
     private void addModality() {
         Stage x = new Stage();
         x.initOwner(this);
-        x.setTitle("Add User");
+        x.setTitle("Add Modality");
         x.initModality(Modality.WINDOW_MODAL);
         BorderPane y = new BorderPane();
         Label txt = new Label("Enter the order name below. ");
-        TextField order = new TextField("order");
-        Label text = new Label(" Enter Cost. ");
-        TextField cost = new TextField("Cost");
+        TextField order = new TextField("");
+        Label text = new Label(" Enter cost. ");
+        TextField cost = new TextField("");
         order.setPrefWidth(200);
         Button submit = new Button("Submit");
         submit.setId("complete");

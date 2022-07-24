@@ -3,8 +3,8 @@ package system.ris;
 import static system.ris.App.ds;
 import static system.ris.App.url;
 import datastorage.InputValidation;
-import datastorage.Patient;
 import datastorage.User;
+import datastorage.Patient;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -46,15 +46,17 @@ public class Login extends Stage {
     //Creating all individual elements in scene
     //Create Username/Password Label and Textbox 
 
+    //User
     private Label textTitle = new Label("User Login");
-    private Label textUsername = new Label("Enter your Username:");
-    private TextField inputUsername = new TextField("here");
-    private Label textPassword = new Label("Enter your Password:");
+    private Label textUsername = new Label("Username:");
+    private TextField inputUsername = new TextField("");
+    private Label textPassword = new Label("Password:");
     private PasswordField inputPassword = new PasswordField();
     
+    //Patient
     private Label textTitle2 = new Label("Patient Login");
-    private Label textUsername2 = new Label("Enter your Username:");
-    private TextField inputUsername2 = new TextField("here");
+    private Label textUsername2 = new Label("Username: ");
+    private TextField inputUsername2 = new TextField("");
     
     //Create Login Button. Logic for Button at End.
     private Button btnLogin = new Button("Login");
@@ -110,23 +112,23 @@ public class Login extends Stage {
         //Gridpane does what Gridpane does best
         //Everything's on a grid. 
         //Follows-> Column (x), then Row (y)
-        grid.setAlignment(Pos.CENTER_LEFT);
-        GridPane.setConstraints(textTitle, 115, 1);
-        GridPane.setConstraints(textUsername, 115, 2);
-        GridPane.setConstraints(inputUsername, 116, 2);
-        GridPane.setConstraints(textPassword, 115, 4);
-        GridPane.setConstraints(inputPassword, 116, 4);
-        GridPane.setConstraints(btnLogin, 115, 5, 3, 2);
+        grid.setAlignment(Pos.CENTER);
+        GridPane.setConstraints(textTitle, 0, 0);
+        GridPane.setConstraints(textUsername, 0, 2);
+        GridPane.setConstraints(inputUsername, 2, 2);
+        GridPane.setConstraints(textPassword, 0, 4);
+        GridPane.setConstraints(inputPassword, 2, 4);
+        GridPane.setConstraints(btnLogin, 1, 5, 3, 1);
         
-        GridPane.setConstraints(textTitle2, 160, 1);
-        GridPane.setConstraints(textUsername2, 160, 2);
-        GridPane.setConstraints(inputUsername2, 161, 2);
-        GridPane.setConstraints(btnLogin2, 160, 3, 3, 2);
+        GridPane.setConstraints(textTitle2, 10, 0);
+        GridPane.setConstraints(textUsername2, 10, 2);
+        GridPane.setConstraints(inputUsername2, 12, 2);
+        GridPane.setConstraints(btnLogin2, 11, 5, 3, 1);
+        
         grid.setPadding(new Insets(5));
         grid.setHgap(5);
         grid.setVgap(5);
         grid.getChildren().addAll(textTitle, textUsername, inputUsername, textPassword, inputPassword, btnLogin, textTitle2, textUsername2, inputUsername2, btnLogin2);
-        
     }
 
     /*
@@ -236,7 +238,7 @@ public class Login extends Stage {
             a.show();
         }
     }
-    
+
     private void patientLoginCheck() {
         String username = inputUsername2.getText();
 
@@ -244,10 +246,7 @@ public class Login extends Stage {
             return;
         }
 
-        String sql = "Select docPatientConnector.patientID, patients.email, patients.full_name, patients.username, patients.dob, patients.address, patients.insurance"
-                + " FROM docPatientConnector"
-                + " INNER JOIN patients ON docPatientConnector.patientID = patients.patientID"
-                + " WHERE patients.email = '" + username + "';";
+        String sql = "Select * FROM patients WHERE patients.username = '" + username + "';";
 
         try {
             
@@ -256,11 +255,14 @@ public class Login extends Stage {
             ResultSet rs = stmt.executeQuery(sql);
 
             while (rs.next()) {
-                String userId = rs.getString("patientID");
+                String patientId = rs.getString("patientID");
                 String fullName = rs.getString("full_name");
-                App.user = new User(userId, fullName, 7);
-                App.user.setEmail(rs.getString("email"));
-                App.user.setUsername(rs.getString("username"));
+                App.patient = new Patient(patientId, fullName);
+                App.patient.setEmail(rs.getString("email"));
+                App.patient.setUsername(rs.getString("username"));
+                App.patient.setDob(rs.getString("dob"));
+                App.patient.setAddress(rs.getString("address"));
+                App.patient.setInsurance(rs.getString("insurance"));
                 
             }
 
@@ -269,11 +271,11 @@ public class Login extends Stage {
             conn.close();
             
             
-            if (App.user == null) {
+            if (App.patient == null) {
                 throw new SQLException("Invalid Username / Password");
             }
             else {
-                Stage x = new PatientUser();
+                Stage x = new PatientPortal();
                 x.show();
                 x.setMaximized(true);
                 this.hide();
@@ -303,7 +305,7 @@ public class Login extends Stage {
             a.show();
         }
     }
-
+    
     //Checks for valid database connection
     private void connectToDatabase() {
         try {

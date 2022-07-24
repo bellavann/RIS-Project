@@ -1,6 +1,7 @@
 package system.ris;
 
 import datastorage.User;
+import datastorage.Patient;
 import javafx.application.Application;
 import javafx.stage.Stage;
 import java.sql.Connection;
@@ -14,6 +15,7 @@ import org.postgresql.ds.PGSimpleDataSource;
 public class App extends Application {
 
     public static User user;
+    public static Patient patient;
     public static String fileName = "risDirectory";
     public static String imagePathDirectory = "Favicons/";
     public static String url = "";
