@@ -36,6 +36,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javax.swing.*;
 
 public class Billing extends Stage {
 //<editor-fold>
@@ -583,9 +584,14 @@ public class Billing extends Stage {
     }
 
     private void removeAppointment(Appointment appt) {
+        int result = JOptionPane.showConfirmDialog(null, "Are you sure you want to remove the appointment?", "Remove Appointment", JOptionPane.DEFAULT_OPTION);
+        // 0 = ok
+        
+        if (result == 0) {
         String sql = "UPDATE appointments SET viewable = 0 WHERE appt_id = '" + appt.getApptID() + "';";
         App.executeSQLStatement(sql);
         populateTable();
+        }
     }
 
 }
