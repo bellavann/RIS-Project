@@ -39,6 +39,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javax.swing.JOptionPane;
 
 public class Administrator extends Stage {
 //<editor-fold>
@@ -408,10 +409,15 @@ public class Administrator extends Stage {
             }
 
             private void updatePassword() {
-                String sql = "UPDATE users SET password = '" + input.getText() + "' WHERE user_id = '" + z.getUserID() + "';";
-                App.executeSQLStatement(sql);
-                usersPageView();
-                x.close();
+                int result = JOptionPane.showConfirmDialog(null, "Are you sure you want to change this password?", "Update Password", JOptionPane.DEFAULT_OPTION);
+                // 0 = ok
+                
+                if (result == 0) {
+                    String sql = "UPDATE users SET password = '" + input.getText() + "' WHERE user_id = '" + z.getUserID() + "';";
+                    App.executeSQLStatement(sql);
+                    usersPageView();
+                    x.close();
+                }
             }
         });
 
