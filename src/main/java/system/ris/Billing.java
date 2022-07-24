@@ -220,7 +220,7 @@ public class Billing extends Stage {
                 + " FROM appointments"
                 + " INNER JOIN statusCode ON appointments.statusCode = statusCode.statusID "
                 + " INNER JOIN patients ON patients.patientID = appointments.patient_id"
-                + " WHERE statusCode > 3 AND viewable != 0 "
+                + " WHERE statusCode = 6 AND viewable != 0 "
                 + " ORDER BY time ASC;";
 
         try {
