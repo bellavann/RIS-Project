@@ -57,6 +57,8 @@ public class Login extends Stage {
     private Label textTitle2 = new Label("Patient Login");
     private Label textUsername2 = new Label("Username: ");
     private TextField inputUsername2 = new TextField("");
+    private Label textPassword2 = new Label("Password:");
+    private PasswordField inputPassword2 = new PasswordField();
     
     //Create Login Button. Logic for Button at End.
     private Button btnLogin = new Button("Login");
@@ -84,6 +86,7 @@ public class Login extends Stage {
         inputUsername.setId("textfield");
         inputPassword.setId("textfield");
         inputUsername2.setId("textfield");
+        inputPassword2.setId("textfield");
         center.setId("loginpage");
         center.setSpacing(10);
         
@@ -123,12 +126,14 @@ public class Login extends Stage {
         GridPane.setConstraints(textTitle2, 10, 0);
         GridPane.setConstraints(textUsername2, 10, 2);
         GridPane.setConstraints(inputUsername2, 12, 2);
+        GridPane.setConstraints(textPassword2, 10, 4);
+        GridPane.setConstraints(inputPassword2, 12, 4);
         GridPane.setConstraints(btnLogin2, 11, 5, 3, 1);
         
         grid.setPadding(new Insets(5));
         grid.setHgap(5);
         grid.setVgap(5);
-        grid.getChildren().addAll(textTitle, textUsername, inputUsername, textPassword, inputPassword, btnLogin, textTitle2, textUsername2, inputUsername2, btnLogin2);
+        grid.getChildren().addAll(textTitle, textUsername, inputUsername, textPassword, inputPassword, btnLogin, textTitle2, textUsername2, inputUsername2, textPassword2, inputPassword2, btnLogin2);
     }
 
     /*
@@ -241,12 +246,17 @@ public class Login extends Stage {
 
     private void patientLoginCheck() {
         String username = inputUsername2.getText();
+        String password = inputPassword2.getText();
 
         if (!InputValidation.validateUsername(username)) {
             return;
         }
+        
+        if (!InputValidation.validatePassword(password)) {
+            return;
+        }
 
-        String sql = "Select * FROM patients WHERE patients.username = '" + username + "';";
+        String sql = "Select * FROM patients WHERE patients.username = '" + username + "' AND patients.password = '" + password + "';";
 
         try {
             
