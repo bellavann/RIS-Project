@@ -1,15 +1,10 @@
 package system.ris;
 
-import static system.ris.App.ds;
 import datastorage.Appointment;
 import datastorage.InputValidation;
-import datastorage.Order;
 import datastorage.Patient;
 import datastorage.PatientAlert;
-import datastorage.Payment;
 import datastorage.User;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -19,13 +14,11 @@ import java.util.List;
 import javafx.collections.FXCollections;
 import javafx.collections.transformation.FilteredList;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
+import javafx.event.Event;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -33,14 +26,10 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import static system.ris.App.ds;
@@ -70,6 +59,7 @@ public class PatientPortal extends Stage{
     Label info = new Label("My Info");
     Label appointments = new Label("Appointments");
     Label bills = new Label("Bills");
+    Label alerts = new Label("Alerts");
     Button logOut = new Button("Log Out");
     //End Navbar
     
@@ -78,6 +68,7 @@ public class PatientPortal extends Stage{
     VBox infoContainer = new VBox();
     VBox appointmentsContainer = new VBox();
     VBox billsContainer = new VBox();
+    VBox alertsContainer = new VBox();
     
     //Scene
     BorderPane main = new BorderPane();
@@ -85,6 +76,10 @@ public class PatientPortal extends Stage{
     //End Scene
     
     private FilteredList<Appointment> flAppointment;
+    
+    ArrayList<PatientAlert> paList = new ArrayList<>();
+    ArrayList<PatientAlert> allergies = new ArrayList<>(); //Specific to the Patient
+    
     
 //</editor-fold>
     
@@ -99,7 +94,7 @@ public class PatientPortal extends Stage{
         navbar.setAlignment(Pos.TOP_RIGHT);
         logOut.setPrefHeight(30);
         username.setId("navbar");
-        HBox navButtons = new HBox(info, appointments, bills);
+        HBox navButtons = new HBox(info, appointments, bills, alerts);
         navButtons.setAlignment(Pos.TOP_LEFT);
         navButtons.setSpacing(10);
         HBox.setHgrow(navButtons, Priority.ALWAYS);
@@ -110,6 +105,7 @@ public class PatientPortal extends Stage{
         info.setId("navbar");
         appointments.setId("navbar");
         bills.setId("navbar");
+        alerts.setId("navbar");
         //End Navbar
 
         //Center
@@ -118,6 +114,7 @@ public class PatientPortal extends Stage{
         info.setOnMouseClicked(eh -> infoPageView());
         appointments.setOnMouseClicked(eh -> appointmentsPageView());
         bills.setOnMouseClicked(eh -> billsPageView());
+        alerts.setOnMouseClicked(eh -> alertsPageView());
         //End Center
         
         //Buttons
@@ -159,7 +156,7 @@ public class PatientPortal extends Stage{
         HBox hb1 = new HBox(fullNameTxt, usernameTxt);
         hb1.setSpacing(10);
         HBox hb2 = new HBox(emailTxt, dobTxt);
-        hb2.setSpacing(10);;
+        hb2.setSpacing(10);
         HBox hb3 = new HBox(addressTxt, insuranceTxt);
         hb3.setSpacing(10);
         
@@ -174,6 +171,7 @@ public class PatientPortal extends Stage{
         info.setId("selected");
         appointments.setId("navbar");
         bills.setId("navbar");
+        alerts.setId("navbar");
         
         updateInfo.setOnAction((ActionEvent e) -> {
             updateInfo();
@@ -294,6 +292,7 @@ public class PatientPortal extends Stage{
         info.setId("navbar");
         appointments.setId("selected");
         bills.setId("navbar");
+        alerts.setId("navbar");
     }
 
     private void createTableAppointments() {
@@ -393,6 +392,217 @@ public class PatientPortal extends Stage{
         return value;
     }
     
+    private void populatePaList() {
+        paList.clear();
+
+        String sql = "Select patientAlerts.alertID, patientAlerts.alert "
+                + " FROM patientAlerts "
+                + " "
+                + " ;";
+
+        try {
+
+            Connection conn = ds.getConnection();
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+
+            while (rs.next()) {
+                PatientAlert pa = new PatientAlert(rs.getString("alertID"), rs.getString("alert"), getFlagsFromDatabase(rs.getString("alertID")));
+                paList.add(pa);
+            }
+            
+            rs.close();
+            stmt.close();
+            conn.close();
+            
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+    
+    private void populateAllergies(Patient z) {
+        allergies.clear();
+
+        String sql = "Select patientAlerts.alertID, patientAlerts.alert "
+                + " FROM patientAlerts "
+                + " INNER JOIN alertsPatientConnector ON patientAlerts.alertID = alertsPatientConnector.alertID "
+                + " WHERE alertsPatientConnector.patientID = '" + z.getPatientID() + "'"
+                + ";";
+
+        try {
+
+            Connection conn = ds.getConnection();
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+
+            while (rs.next()) {
+                PatientAlert pa = new PatientAlert(rs.getString("alertID"), rs.getString("alert"), getFlagsFromDatabase(rs.getString("alertID")));
+                allergies.add(pa);
+            }
+            
+       //     table.getItems().addAll(allergies);
+            
+            rs.close();
+            stmt.close();
+            conn.close();
+            
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+    
+    private String getFlagsFromDatabase(String aInt) {
+        String val = "";
+        
+        String sql = "Select orderCodes.orders "
+                + " FROM flags "
+                + " INNER JOIN orderCodes ON flags.orderID = orderCodes.orderID "
+                + " WHERE alertID = '" + aInt + "' "
+                + ";";
+
+        try {
+
+            Connection conn = ds.getConnection();
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            
+            List<PatientAlert> list = new ArrayList<>();
+            
+            while (rs.next()) {
+                //What I receieve:  patientID, email, full_name, dob, address, insurance
+                val += rs.getString("orders") + ", ";
+            }
+            
+            rs.close();
+            stmt.close();
+            conn.close();
+            
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return val;
+    }
+    
+    private void updateAlerts() {
+        VBox container = new VBox();
+        Stage x = new Stage();
+        x.initOwner(this);
+        x.initModality(Modality.WINDOW_MODAL);
+        x.setTitle("Update Patient");
+        Scene scene = new Scene(container);
+        x.setScene(scene);
+        x.setHeight(400);
+        x.setWidth(300);
+        scene.getStylesheets().add("file:stylesheet.css");
+        
+        Button submit = new Button("Submit");
+        submit.setId("complete");
+        
+        ArrayList<PatientAlert> alertsToAddForThisPatient = new ArrayList<>();
+        ArrayList<PatientAlert> alertsToRemoveForThisPatient = new ArrayList<>();
+        VBox patientAlertContainer = new VBox();
+        for (PatientAlert a : paList) {
+            Label label = new Label(a.getAlert());
+            ComboBox dropdown = new ComboBox();
+            dropdown.getItems().addAll("Yes", "No");
+            if (allergies.contains(a)) {
+                dropdown.setValue("Yes");
+            } else {
+                dropdown.setValue("No");
+            }
+            HBox temp = new HBox(label, dropdown);
+            temp.setSpacing(10);
+            temp.setPadding(new Insets(10));
+
+            patientAlertContainer.getChildren().add(temp);
+
+            dropdown.setOnAction((Event eh) -> {
+                if (dropdown.getValue().toString().equals("Yes")) {
+                    alertsToAddForThisPatient.add(a);
+                    alertsToRemoveForThisPatient.remove(a);
+                } else if (dropdown.getValue().toString().equals("No")) {
+                    alertsToAddForThisPatient.remove(a);
+                    alertsToRemoveForThisPatient.add(a);
+                }
+            });
+        }
+
+        ScrollPane s1 = new ScrollPane(patientAlertContainer);
+        s1.setPrefHeight(200);
+        
+        container.getChildren().addAll(s1, submit);
+        x.show();
+        
+        submit.setOnAction((ActionEvent eh) -> {
+            for (PatientAlert a : alertsToAddForThisPatient) {
+                String sql = "INSERT INTO alertsPatientConnector VALUES ( '" + App.patient.getPatientID() + "', '" + a.getAlertID() + "');";
+                App.executeSQLStatement(sql);
+            }
+            for (PatientAlert a : alertsToRemoveForThisPatient) {
+                String sql = "DELETE FROM alertsPatientConnector WHERE patientID = '" + App.patient.getPatientID() + "' AND alertID = '" + a.getAlertID() + "';";
+                App.executeSQLStatement(sql);
+            }
+            
+            x.close();
+            alertsPageView();
+        });
+    }
+    
+    private void alertsPageView() {
+        alertsContainer.getChildren().clear();
+        
+        populatePaList();
+        populateAllergies(App.patient);
+        
+        ArrayList<HBox> hbox = new ArrayList<>();
+        for (int i = 0; i < (paList.size() / 5) + 1; i++) {
+            hbox.add(new HBox());
+        }
+        int counter = 0;
+        int hboxCounter = 0;
+        for (PatientAlert i : allergies) {
+            if (counter > 5) {
+                counter = 0;
+                hboxCounter++;
+            }
+            Label label = new Label(i.getAlert());
+            ComboBox dropdown = new ComboBox();
+            dropdown.getItems().addAll("Yes");
+            dropdown.setValue("Yes");
+            dropdown.setEditable(false);
+            HBox temp = new HBox(label, dropdown);
+            temp.setSpacing(10);
+            temp.setPadding(new Insets(10));
+
+            hbox.get(hboxCounter).getChildren().add(temp);
+            counter++;
+        }
+        for (HBox cont : hbox) {
+            alertsContainer.getChildren().add(cont);
+        }
+        ScrollPane s1 = new ScrollPane(alertsContainer);
+        s1.setPrefHeight(200);
+        s1.setVisible(true);
+        
+        Button updateInfo = new Button("Update Alerts");
+        HBox buttonContainer = new HBox(updateInfo);
+        buttonContainer.setSpacing(10);
+        
+        alertsContainer.getChildren().add(buttonContainer);
+        alertsContainer.setSpacing(10);
+        
+        updateInfo.setOnAction((ActionEvent e) -> {
+            updateAlerts();
+        });
+        
+        main.setCenter(alertsContainer);
+                
+        info.setId("navbar");
+        appointments.setId("navbar");
+        bills.setId("navbar");
+        alerts.setId("selected");
+    }
+    
 //</editor-fold>
     
 //<editor-fold defaultstate="collapsed" desc="Bills Section">
@@ -408,6 +618,7 @@ public class PatientPortal extends Stage{
         billsContainer.setSpacing(10);
         info.setId("navbar");
         appointments.setId("navbar");
+        alerts.setId("navbar");
         bills.setId("selected");
     }
     
@@ -470,7 +681,6 @@ public class PatientPortal extends Stage{
                 appt.setFullName(rs.getString("full_name"));
                 appt.setTotal(calculateTotalCost(appt));
                 
-                System.out.println(appt);
                 list.add(appt);
             }
 
