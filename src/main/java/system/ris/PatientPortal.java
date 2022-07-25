@@ -453,8 +453,7 @@ public class PatientPortal extends Stage{
                 + " FROM appointments"
                 + " INNER JOIN statusCode ON appointments.statusCode = statusCode.statusID "
                 + " INNER JOIN patients ON patients.patientID = appointments.patient_id"
-                + " WHERE statusCode > 3 AND viewable != 0 "
-                + " WHERE patient_id = '" + App.patient.getPatientID() + "'"
+                + " WHERE patient_id = '" + App.patient.getPatientID() + "' AND statusCode = 6 AND viewable != 0 "
                 + " ORDER BY time ASC;";
 
         try {
@@ -471,6 +470,7 @@ public class PatientPortal extends Stage{
                 appt.setFullName(rs.getString("full_name"));
                 appt.setTotal(calculateTotalCost(appt));
                 
+                System.out.println(appt);
                 list.add(appt);
             }
 
