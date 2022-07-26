@@ -5,12 +5,18 @@ import datastorage.InputValidation;
 import datastorage.Patient;
 import datastorage.PatientAlert;
 import datastorage.User;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URLConnection;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.collections.FXCollections;
 import javafx.collections.transformation.FilteredList;
 import javafx.event.ActionEvent;
@@ -26,12 +32,16 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import org.apache.commons.io.FileUtils;
 import static system.ris.App.ds;
 
 public class PatientPortal extends Stage{
@@ -487,6 +497,7 @@ public class PatientPortal extends Stage{
         TableColumn timeCol = new TableColumn("Time of Appt.");
         TableColumn orderCol = new TableColumn("Orders Requested");
         TableColumn status = new TableColumn("Status");
+        TableColumn viewOrderCol = new TableColumn("View Appointment Orders");
         
         //All of the Value setting
         apptIDCol.setCellValueFactory(new PropertyValueFactory<>("apptID"));
@@ -495,17 +506,152 @@ public class PatientPortal extends Stage{
         timeCol.setCellValueFactory(new PropertyValueFactory<>("time"));
         orderCol.setCellValueFactory(new PropertyValueFactory<>("order"));
         status.setCellValueFactory(new PropertyValueFactory<>("statusAsLabel"));
+        viewOrderCol.setCellValueFactory(new PropertyValueFactory<>("placeholder"));
 
         //Set Column Widths
         apptIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.09));
         patientIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.09));
         firstNameCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
         timeCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
-        orderCol.prefWidthProperty().bind(table.widthProperty().multiply(0.4));
+        orderCol.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
         status.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
+        viewOrderCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
         
         //Add columns to table
-        table.getColumns().addAll(apptIDCol, patientIDCol, firstNameCol, timeCol, orderCol, status);
+        table.getColumns().addAll(apptIDCol, patientIDCol, firstNameCol, timeCol, orderCol, status, viewOrderCol);
+    }
+    
+    private ArrayList<Pair> retrieveUploadedImages(String apptId) {
+        //Connect to database
+        ArrayList<Pair> list = new ArrayList<>();
+
+        String sql = "SELECT *"
+                + " FROM images"
+                + " WHERE apptID = '" + apptId + "'"
+                + " ORDER BY imageID DESC;";
+
+        try {
+
+            Connection conn = ds.getConnection();
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            
+            while (rs.next()) {
+                //What I receieve:  image
+                Pair pair = new Pair(new Image(rs.getBinaryStream("image")), rs.getString("imageID"));
+                pair.fis = rs.getBinaryStream("image");
+                list.add(pair);
+            }
+            
+            rs.close();
+            stmt.close();
+            conn.close();
+            
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return list;
+    }
+    
+    private String getRadiologyReport(String apptID) {
+        String value = "";
+
+        String sql = "SELECT writtenReport "
+                + " FROM report"
+                + " WHERE apptID = '" + apptID + "';";
+        
+        try {
+
+            Connection conn = ds.getConnection();
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            
+            while (rs.next()) {
+                //What I receieve:  emailLabel
+                value = rs.getString("writtenReport");
+            }
+            
+            rs.close();
+            stmt.close();
+            conn.close();
+            
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return value;
+    }
+    
+    private void viewRadiologyReport(Patient z, Appointment appt) {
+        Stage x = new Stage();
+        x.initOwner(this);
+        x.setTitle("View Radiology Report");
+        x.initModality(Modality.WINDOW_MODAL);
+        x.setMaximized(true);
+        BorderPane y = new BorderPane();
+
+        Button confirm = new Button("Done");
+        confirm.setId("complete");
+        
+        VBox imgContainer = new VBox();
+
+        ArrayList<Pair> list = retrieveUploadedImages(appt.getApptID());
+        ArrayList<HBox> hbox = new ArrayList<>();
+
+        if (list.isEmpty()) {
+            System.out.println("Error, image list is empty");
+        } else {
+            int counter = 0;
+            int hboxCounter = 0;
+            for (int i = 0; i < (list.size() / 2) + 1; i++) {
+                hbox.add(new HBox());
+            }
+            for (Pair i : list) {
+                if (counter > 2) {
+                    counter++;
+                    hboxCounter++;
+                }
+                ImageView temp = new ImageView(i.getImg());
+                temp.setPreserveRatio(true);
+                temp.setFitHeight(300);
+                Button download = new Button("Download");
+                VBox tempBox = new VBox(temp, download);
+                tempBox.setId("borderOnHover");
+                tempBox.setSpacing(5);
+                tempBox.setAlignment(Pos.CENTER);
+                tempBox.setPadding(new Insets(10));
+                hbox.get(hboxCounter).getChildren().addAll(tempBox);
+                download.setOnAction((ActionEvent e) -> {
+                    DirectoryChooser directoryChooser = new DirectoryChooser();
+                    File selectedDirectory = directoryChooser.showDialog(x);
+                    downloadImage(i, selectedDirectory);
+                });
+                counter++;
+            }
+        }
+
+        for (HBox temp : hbox) {
+            imgContainer.getChildren().add(temp);
+        }
+        
+        ScrollPane s1 = new ScrollPane(imgContainer);
+        
+        Label radiologyReport = new Label();
+        radiologyReport.setText("Radiology Report: \n" + getRadiologyReport(appt.getApptID()) + "\n\n");
+        HBox container = new HBox(s1);
+        ScrollPane s2 = new ScrollPane(radiologyReport);
+        s2.setPrefHeight(400);
+        VBox center = new VBox(container, s2, confirm);
+        container.setSpacing(10);
+        center.setAlignment(Pos.CENTER);
+        center.setPadding(new Insets(10));
+        y.setCenter(center);
+        y.getStylesheets().add("file:stylesheet.css");
+        x.setScene(new Scene(y));
+
+        confirm.setOnAction((ActionEvent e) -> {
+            x.close();
+        });
+        x.showAndWait();
     }
 
     private void populateTableAppointments() {
@@ -532,6 +678,22 @@ public class PatientPortal extends Stage{
                 Appointment appt = new Appointment(rs.getString("appt_id"), rs.getString("patient_id"), rs.getString("time"), rs.getString("status"), getPatOrders(rs.getString("patient_id"), rs.getString("appt_id")));
                 appt.setFullName(rs.getString("full_name"));
                 list.add(appt);
+            }
+            
+            for (Appointment x : list) {
+                if (x.getStatus().contains(".")) {
+                    x.placeholder.setText("View Radiology Report");
+                    if (!x.getStatus().contains("Signature")) {
+                        x.placeholder.setId("complete");
+                    }
+                    x.placeholder.setOnAction((ActionEvent e) -> {
+                        viewRadiologyReport(App.patient, x);
+                    });
+
+                } else {
+                    x.placeholder.setText("Radiology Report not created yet");
+                    x.placeholder.setId("cancel");
+                }
             }
 
             flAppointment = new FilteredList(FXCollections.observableList(list), p -> true);
@@ -697,4 +859,47 @@ public class PatientPortal extends Stage{
 
 //</editor-fold>
     
+    
+    private void downloadImage(Pair img, File selectedDirectory) {
+        try {
+            
+            String mimeType = URLConnection.guessContentTypeFromStream(img.fis);
+            System.out.print(mimeType);
+            mimeType = mimeType.replace("image/", "");
+            File outputFile = new File(selectedDirectory.getPath() + "/" + img.imgID + "." + mimeType);
+            FileUtils.copyInputStreamToFile(img.fis, outputFile);
+        
+        } catch (IOException ex) {
+            Logger.getLogger(ReferralDoctor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    private class Pair {
+
+        Image img;
+        String imgID;
+        InputStream fis;
+
+        public Pair(Image img, String imgID) {
+            this.img = img;
+            this.imgID = imgID;
+        }
+
+        public Image getImg() {
+            return img;
+        }
+
+        public void setImg(Image img) {
+            this.img = img;
+        }
+
+        public String getImgID() {
+            return imgID;
+        }
+
+        public void setImgID(String imgID) {
+            this.imgID = imgID;
+        }
+
+    }
 }
