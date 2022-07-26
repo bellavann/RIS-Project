@@ -124,6 +124,7 @@ public class PatientPortal extends Stage{
     
     private void infoPageView() {
         infoContainer.getChildren().clear();
+        alertsContainer.getChildren().clear();
 
         main.setCenter(infoContainer);
         
