@@ -35,21 +35,6 @@ import javafx.stage.Stage;
 import static system.ris.App.ds;
 
 public class PatientPortal extends Stage{
-    /*
-        personal information
-            full name
-            email
-            username
-            dob
-            address
-            insurance
-            patient alerts
-            orders -- Should patients be able to see their orders?
-            CHANGE PASSWORD
-        appointments
-        bills
-        medical history
-    */
 
 //<editor-fold>
     
@@ -59,7 +44,6 @@ public class PatientPortal extends Stage{
     Label info = new Label("My Info");
     Label appointments = new Label("Appointments");
     Label bills = new Label("Bills");
-    Label alerts = new Label("Alerts");
     Button logOut = new Button("Log Out");
     //End Navbar
     
@@ -78,7 +62,7 @@ public class PatientPortal extends Stage{
     private FilteredList<Appointment> flAppointment;
     
     ArrayList<PatientAlert> paList = new ArrayList<>();
-    ArrayList<PatientAlert> allergies = new ArrayList<>(); //Specific to the Patient
+    ArrayList<PatientAlert> allergies = new ArrayList<>();
     
     
 //</editor-fold>
@@ -94,7 +78,7 @@ public class PatientPortal extends Stage{
         navbar.setAlignment(Pos.TOP_RIGHT);
         logOut.setPrefHeight(30);
         username.setId("navbar");
-        HBox navButtons = new HBox(info, appointments, bills, alerts);
+        HBox navButtons = new HBox(info, appointments, bills);
         navButtons.setAlignment(Pos.TOP_LEFT);
         navButtons.setSpacing(10);
         HBox.setHgrow(navButtons, Priority.ALWAYS);
@@ -102,19 +86,16 @@ public class PatientPortal extends Stage{
         navbar.setStyle("-fx-background-color: #2f4f4f; -fx-spacing: 15;");
         main.setTop(navbar);
 
-        info.setId("navbar");
+        info.setId("selected");
         appointments.setId("navbar");
         bills.setId("navbar");
-        alerts.setId("navbar");
         //End Navbar
 
         //Center
-        Label tutorial = new Label("Select one of the buttons above to get started!");
-        main.setCenter(tutorial);
+        infoPageView();
         info.setOnMouseClicked(eh -> infoPageView());
         appointments.setOnMouseClicked(eh -> appointmentsPageView());
         bills.setOnMouseClicked(eh -> billsPageView());
-        alerts.setOnMouseClicked(eh -> alertsPageView());
         //End Center
         
         //Buttons
@@ -139,7 +120,7 @@ public class PatientPortal extends Stage{
         this.close();
     }
     
-    //<editor-fold defaultstate="collapsed" desc="Patient Info Section">
+//<editor-fold defaultstate="collapsed" desc="Patient Info Section">
     
     private void infoPageView() {
         infoContainer.getChildren().clear();
@@ -152,6 +133,8 @@ public class PatientPortal extends Stage{
         Label dobTxt = new Label("Date of Birth: " + App.patient.getDob() + "");
         Label addressTxt = new Label("Address: " + App.patient.getAddress() + "");
         Label insuranceTxt = new Label("Insurance: " + App.patient.getInsurance() + "");
+        Label alertsLabel = new Label("\tMedical Information: ");
+        alertsLabel.setStyle("-fx-font-weight: bold;");
         
         HBox hb1 = new HBox(fullNameTxt, usernameTxt);
         hb1.setSpacing(10);
@@ -159,19 +142,58 @@ public class PatientPortal extends Stage{
         hb2.setSpacing(10);
         HBox hb3 = new HBox(addressTxt, insuranceTxt);
         hb3.setSpacing(10);
+        HBox hb4 = new HBox(alertsLabel);
+        hb4.setSpacing(10);
+        
+        populatePaList();
+        populateAllergies(App.patient);
+        
+        ArrayList<HBox> hbox = new ArrayList<>();
+        for (int i = 0; i < (paList.size() / 5) + 1; i++) {
+            hbox.add(new HBox());
+        }
+        int counter = 0;
+        int hboxCounter = 0;
+        for (PatientAlert i : allergies) {
+            if (counter > 5) {
+                counter = 0;
+                hboxCounter++;
+            }
+            Label label = new Label(i.getAlert());
+            ComboBox dropdown = new ComboBox();
+            dropdown.getItems().addAll("Yes");
+            dropdown.setValue("Yes");
+            dropdown.setEditable(false);
+            HBox temp = new HBox(label, dropdown);
+            temp.setSpacing(10);
+            temp.setPadding(new Insets(10));
+
+            hbox.get(hboxCounter).getChildren().add(temp);
+            counter++;
+        }
+        for (HBox cont : hbox) {
+            alertsContainer.getChildren().add(cont);
+        }
+        ScrollPane s1 = new ScrollPane(alertsContainer);
+        s1.setPrefHeight(200);
+        s1.setVisible(true);
         
         Button updateInfo = new Button("Update Information");
         Button updatePassword = new Button("Update Password");
-        HBox buttonContainer = new HBox(updateInfo, updatePassword);
+        Button updateAlerts = new Button("Update Alerts");
+        HBox buttonContainer = new HBox(updateInfo, updateAlerts, updatePassword);
         buttonContainer.setSpacing(10);
         
-        infoContainer.getChildren().addAll(hb1, hb2, hb3, buttonContainer);
+        
+        alertsContainer.getChildren().add(buttonContainer);
+        alertsContainer.setSpacing(10);
+        
+        infoContainer.getChildren().addAll(hb1, hb2, hb3, hb4, alertsContainer, buttonContainer);
         infoContainer.setSpacing(10);
         
         info.setId("selected");
         appointments.setId("navbar");
         bills.setId("navbar");
-        alerts.setId("navbar");
         
         updateInfo.setOnAction((ActionEvent e) -> {
             updateInfo();
@@ -179,6 +201,10 @@ public class PatientPortal extends Stage{
         
         updatePassword.setOnAction((ActionEvent e) -> {
             updatePassword();
+        });
+        
+        updateAlerts.setOnAction((ActionEvent e) -> {
+            updateAlerts();
         });
     }
 
@@ -274,122 +300,6 @@ public class PatientPortal extends Stage{
             App.executeSQLStatement(sql);
             x.close();    
         });
-    }
-    
-//</editor-fold>
-    
-//<editor-fold defaultstate="collapsed" desc="Appointments Section">
-    
-    private void appointmentsPageView() {
-        appointmentsContainer.getChildren().clear();
-
-        main.setCenter(appointmentsContainer);
-        createTableAppointments();
-        populateTableAppointments();
-
-        appointmentsContainer.getChildren().addAll(table);
-        appointmentsContainer.setSpacing(10);
-        info.setId("navbar");
-        appointments.setId("selected");
-        bills.setId("navbar");
-        alerts.setId("navbar");
-    }
-
-    private void createTableAppointments() {
-        table.getColumns().clear();
-        
-        //All of the Columns
-        TableColumn apptIDCol = new TableColumn("Appointment ID");
-        TableColumn patientIDCol = new TableColumn("Patient ID");
-        TableColumn firstNameCol = new TableColumn("Full Name");
-        TableColumn timeCol = new TableColumn("Time of Appt.");
-        TableColumn orderCol = new TableColumn("Orders Requested");
-        TableColumn status = new TableColumn("Status");
-        
-        //All of the Value setting
-        apptIDCol.setCellValueFactory(new PropertyValueFactory<>("apptID"));
-        patientIDCol.setCellValueFactory(new PropertyValueFactory<>("patientID"));
-        firstNameCol.setCellValueFactory(new PropertyValueFactory<>("fullName"));
-        timeCol.setCellValueFactory(new PropertyValueFactory<>("time"));
-        orderCol.setCellValueFactory(new PropertyValueFactory<>("order"));
-        status.setCellValueFactory(new PropertyValueFactory<>("statusAsLabel"));
-
-        //Set Column Widths
-        apptIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.09));
-        patientIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.09));
-        firstNameCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
-        timeCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
-        orderCol.prefWidthProperty().bind(table.widthProperty().multiply(0.4));
-        status.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
-        
-        //Add columns to table
-        table.getColumns().addAll(apptIDCol, patientIDCol, firstNameCol, timeCol, orderCol, status);
-    }
-
-    private void populateTableAppointments() {
-        table.getItems().clear();
-        
-        //Connect to database
-        String sql = "Select appt_id, patient_id, patients.full_name, time, statusCode.status"
-                + " FROM appointments"
-                + " INNER JOIN statusCode ON appointments.statusCode = statusCode.statusID "
-                + " INNER JOIN patients ON patients.patientID = appointments.patient_id"
-                + " WHERE patient_id = '" + App.patient.getPatientID() + "'"
-                + " ORDER BY time ASC;";
-
-        try {
-
-            Connection conn = ds.getConnection();
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery(sql);
-            
-            List<Appointment> list = new ArrayList<>();
-
-            while (rs.next()) {
-                //What I receieve:  apptId, patientID, fullname, time, address, insurance, referral, status, order
-                Appointment appt = new Appointment(rs.getString("appt_id"), rs.getString("patient_id"), rs.getString("time"), rs.getString("status"), getPatOrders(rs.getString("patient_id"), rs.getString("appt_id")));
-                appt.setFullName(rs.getString("full_name"));
-                list.add(appt);
-            }
-
-            flAppointment = new FilteredList(FXCollections.observableList(list), p -> true);
-            table.getItems().addAll(flAppointment);
-            
-            rs.close();
-            stmt.close();
-            conn.close();
-            
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
-    }
-
-    private String getPatOrders(String patientID, String aInt) {
-        String sql = "Select orderCodes.orders "
-                + " FROM appointmentsOrdersConnector "
-                + " INNER JOIN orderCodes ON appointmentsOrdersConnector.orderCodeID = orderCodes.orderID "
-                + " WHERE apptID = '" + aInt + "';";
-
-        String value = "";
-        
-        try {
-
-            Connection conn = ds.getConnection();
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery(sql);
-            
-            while (rs.next()) {
-                value += rs.getString("orders") + ", ";
-            }
-            
-            rs.close();
-            stmt.close();
-            conn.close();
-            
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
-        return value;
     }
     
     private void populatePaList() {
@@ -544,63 +454,123 @@ public class PatientPortal extends Stage{
             }
             
             x.close();
-            alertsPageView();
+            infoPageView();
         });
     }
     
-    private void alertsPageView() {
-        alertsContainer.getChildren().clear();
-        
-        populatePaList();
-        populateAllergies(App.patient);
-        
-        ArrayList<HBox> hbox = new ArrayList<>();
-        for (int i = 0; i < (paList.size() / 5) + 1; i++) {
-            hbox.add(new HBox());
-        }
-        int counter = 0;
-        int hboxCounter = 0;
-        for (PatientAlert i : allergies) {
-            if (counter > 5) {
-                counter = 0;
-                hboxCounter++;
-            }
-            Label label = new Label(i.getAlert());
-            ComboBox dropdown = new ComboBox();
-            dropdown.getItems().addAll("Yes");
-            dropdown.setValue("Yes");
-            dropdown.setEditable(false);
-            HBox temp = new HBox(label, dropdown);
-            temp.setSpacing(10);
-            temp.setPadding(new Insets(10));
+//</editor-fold>
+    
+//<editor-fold defaultstate="collapsed" desc="Appointments Section">
+    
+    private void appointmentsPageView() {
+        appointmentsContainer.getChildren().clear();
 
-            hbox.get(hboxCounter).getChildren().add(temp);
-            counter++;
-        }
-        for (HBox cont : hbox) {
-            alertsContainer.getChildren().add(cont);
-        }
-        ScrollPane s1 = new ScrollPane(alertsContainer);
-        s1.setPrefHeight(200);
-        s1.setVisible(true);
-        
-        Button updateInfo = new Button("Update Alerts");
-        HBox buttonContainer = new HBox(updateInfo);
-        buttonContainer.setSpacing(10);
-        
-        alertsContainer.getChildren().add(buttonContainer);
-        alertsContainer.setSpacing(10);
-        
-        updateInfo.setOnAction((ActionEvent e) -> {
-            updateAlerts();
-        });
-        
-        main.setCenter(alertsContainer);
-                
+        main.setCenter(appointmentsContainer);
+        createTableAppointments();
+        populateTableAppointments();
+
+        appointmentsContainer.getChildren().addAll(table);
+        appointmentsContainer.setSpacing(10);
         info.setId("navbar");
-        appointments.setId("navbar");
+        appointments.setId("selected");
         bills.setId("navbar");
-        alerts.setId("selected");
+    }
+
+    private void createTableAppointments() {
+        table.getColumns().clear();
+        
+        //All of the Columns
+        TableColumn apptIDCol = new TableColumn("Appointment ID");
+        TableColumn patientIDCol = new TableColumn("Patient ID");
+        TableColumn firstNameCol = new TableColumn("Full Name");
+        TableColumn timeCol = new TableColumn("Time of Appt.");
+        TableColumn orderCol = new TableColumn("Orders Requested");
+        TableColumn status = new TableColumn("Status");
+        
+        //All of the Value setting
+        apptIDCol.setCellValueFactory(new PropertyValueFactory<>("apptID"));
+        patientIDCol.setCellValueFactory(new PropertyValueFactory<>("patientID"));
+        firstNameCol.setCellValueFactory(new PropertyValueFactory<>("fullName"));
+        timeCol.setCellValueFactory(new PropertyValueFactory<>("time"));
+        orderCol.setCellValueFactory(new PropertyValueFactory<>("order"));
+        status.setCellValueFactory(new PropertyValueFactory<>("statusAsLabel"));
+
+        //Set Column Widths
+        apptIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.09));
+        patientIDCol.prefWidthProperty().bind(table.widthProperty().multiply(0.09));
+        firstNameCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
+        timeCol.prefWidthProperty().bind(table.widthProperty().multiply(0.1));
+        orderCol.prefWidthProperty().bind(table.widthProperty().multiply(0.4));
+        status.prefWidthProperty().bind(table.widthProperty().multiply(0.2));
+        
+        //Add columns to table
+        table.getColumns().addAll(apptIDCol, patientIDCol, firstNameCol, timeCol, orderCol, status);
+    }
+
+    private void populateTableAppointments() {
+        table.getItems().clear();
+        
+        //Connect to database
+        String sql = "Select appt_id, patient_id, patients.full_name, time, statusCode.status"
+                + " FROM appointments"
+                + " INNER JOIN statusCode ON appointments.statusCode = statusCode.statusID "
+                + " INNER JOIN patients ON patients.patientID = appointments.patient_id"
+                + " WHERE patient_id = '" + App.patient.getPatientID() + "'"
+                + " ORDER BY time ASC;";
+
+        try {
+
+            Connection conn = ds.getConnection();
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            
+            List<Appointment> list = new ArrayList<>();
+
+            while (rs.next()) {
+                //What I receieve:  apptId, patientID, fullname, time, address, insurance, referral, status, order
+                Appointment appt = new Appointment(rs.getString("appt_id"), rs.getString("patient_id"), rs.getString("time"), rs.getString("status"), getPatOrders(rs.getString("patient_id"), rs.getString("appt_id")));
+                appt.setFullName(rs.getString("full_name"));
+                list.add(appt);
+            }
+
+            flAppointment = new FilteredList(FXCollections.observableList(list), p -> true);
+            table.getItems().addAll(flAppointment);
+            
+            rs.close();
+            stmt.close();
+            conn.close();
+            
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private String getPatOrders(String patientID, String aInt) {
+        String sql = "Select orderCodes.orders "
+                + " FROM appointmentsOrdersConnector "
+                + " INNER JOIN orderCodes ON appointmentsOrdersConnector.orderCodeID = orderCodes.orderID "
+                + " WHERE apptID = '" + aInt + "';";
+
+        String value = "";
+        
+        try {
+
+            Connection conn = ds.getConnection();
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            
+            while (rs.next()) {
+                value += rs.getString("orders") + ", ";
+            }
+            
+            rs.close();
+            stmt.close();
+            conn.close();
+            
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return value;
     }
     
 //</editor-fold>
@@ -618,7 +588,6 @@ public class PatientPortal extends Stage{
         billsContainer.setSpacing(10);
         info.setId("navbar");
         appointments.setId("navbar");
-        alerts.setId("navbar");
         bills.setId("selected");
     }
     

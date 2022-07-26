@@ -42,7 +42,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 public class Login extends Stage {
-    
+
     //Creating all individual elements in scene
     //Create Username/Password Label and Textbox 
 
@@ -52,14 +52,14 @@ public class Login extends Stage {
     private TextField inputUsername = new TextField("");
     private Label textPassword = new Label("Password:");
     private PasswordField inputPassword = new PasswordField();
-    
+
     //Patient
     private Label textTitle2 = new Label("Patient Login");
     private Label textUsername2 = new Label("Username: ");
     private TextField inputUsername2 = new TextField("");
     private Label textPassword2 = new Label("Password:");
     private PasswordField inputPassword2 = new PasswordField();
-    
+
     //Create Login Button. Logic for Button at End.
     private Button btnLogin = new Button("Login");
     private Button btnLogin2 = new Button("Login");
@@ -71,10 +71,10 @@ public class Login extends Stage {
     Login() {
         //Setting the Title
         this.setTitle("RIS- Radiology Information System (Logging In)");
-        
+
         //Edit gridPane to look better
         changeGridPane();
-        
+
         //ON button click
         btnLogin.setOnAction((ActionEvent e) -> {
             loginCheck();
@@ -82,23 +82,23 @@ public class Login extends Stage {
         btnLogin2.setOnAction((ActionEvent e) -> {
             patientLoginCheck();
         });
-        
+
         inputUsername.setId("textfield");
         inputPassword.setId("textfield");
         inputUsername2.setId("textfield");
         inputPassword2.setId("textfield");
         center.setId("loginpage");
         center.setSpacing(10);
-        
+
         try {
-            
+
             //Setting the logo
             FileInputStream file = new FileInputStream("logo.png");
             Image logo = new Image(file);
             ImageView logoDisplay = new ImageView(logo);
             center.setAlignment(Pos.CENTER);
             center.getChildren().addAll(logoDisplay, grid);
-            
+
         } catch (FileNotFoundException ex) {
             Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -122,14 +122,14 @@ public class Login extends Stage {
         GridPane.setConstraints(textPassword, 0, 4);
         GridPane.setConstraints(inputPassword, 2, 4);
         GridPane.setConstraints(btnLogin, 1, 5, 3, 1);
-        
+
         GridPane.setConstraints(textTitle2, 10, 0);
         GridPane.setConstraints(textUsername2, 10, 2);
         GridPane.setConstraints(inputUsername2, 12, 2);
         GridPane.setConstraints(textPassword2, 10, 4);
         GridPane.setConstraints(inputPassword2, 12, 4);
         GridPane.setConstraints(btnLogin2, 11, 5, 3, 1);
-        
+
         grid.setPadding(new Insets(5));
         grid.setHgap(5);
         grid.setVgap(5);
@@ -157,7 +157,7 @@ public class Login extends Stage {
         String sql = "Select * FROM users WHERE username = '" + username + "' AND password = '" + password + "' AND enabled = true;";
 
         try {
-            
+
             Connection conn = ds.getConnection();
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
@@ -218,7 +218,7 @@ public class Login extends Stage {
                 x.setMaximized(true);
                 this.hide();
             }
-            
+
         } catch (SQLException e) {
             System.out.println(e.getMessage());
 
@@ -251,7 +251,7 @@ public class Login extends Stage {
         if (!InputValidation.validateUsername(username)) {
             return;
         }
-        
+
         if (!InputValidation.validatePassword(password)) {
             return;
         }
@@ -259,7 +259,7 @@ public class Login extends Stage {
         String sql = "Select * FROM patients WHERE patients.username = '" + username + "' AND patients.password = '" + password + "';";
 
         try {
-            
+
             Connection conn = ds.getConnection();
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
@@ -273,14 +273,14 @@ public class Login extends Stage {
                 App.patient.setDob(rs.getString("dob"));
                 App.patient.setAddress(rs.getString("address"));
                 App.patient.setInsurance(rs.getString("insurance"));
-                
+
             }
 
             rs.close();
             stmt.close();
             conn.close();
-            
-            
+
+
             if (App.patient == null) {
                 throw new SQLException("Invalid Username / Password");
             }
@@ -290,7 +290,7 @@ public class Login extends Stage {
                 x.setMaximized(true);
                 this.hide();
             }
-            
+
         } catch (SQLException e) {
             System.out.println(e.getMessage());
 
@@ -315,7 +315,7 @@ public class Login extends Stage {
             a.show();
         }
     }
-    
+
     //Checks for valid database connection
     private void connectToDatabase() {
         try {
@@ -356,7 +356,7 @@ public class Login extends Stage {
                             a.setHeaderText("URL Invalid");
                             a.setContentText("URL Invalid. Please contact your Administrator. (Restart Application)");
                             a.showAndWait();
-                            
+
                         } finally {
                             try {
                                 outputStream.close();
@@ -377,10 +377,10 @@ public class Login extends Stage {
                 }
                 fr.close();     //closes the stream and release the resources
                 try {
-                    
+
                     App.url = sb.toString();
                     ds.setUrl(Optional.ofNullable(url).orElseThrow(() -> new IllegalArgumentException("JDBC_DATABASE_URL is not set.")));
-                
+
                 } catch (IllegalArgumentException ex) {
                     credentials.delete();
                     Alert a = new Alert(AlertType.INFORMATION);
@@ -391,10 +391,10 @@ public class Login extends Stage {
                 }
 
             }
-            
+
         } catch (IOException ex) {
             Logger.getLogger(Login.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
+
 }

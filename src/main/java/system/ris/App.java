@@ -300,23 +300,23 @@ public class App extends Application {
         String sql = "INSERT INTO users(email, full_name, username, password, role) "
                 + "VALUES ('admin@gmail.com', 'Dave Martin', 'admin', 'admin', '1');\n";
         executeSQLStatement(sql);
-        
+
         sql = "INSERT INTO users(email, full_name, username, password, role) "
                 + "VALUES ('rec@gmail.com', 'Pam Beesley', 'rec', 'rec', '2');\n";
         executeSQLStatement(sql);
-        
+
         sql = "INSERT INTO users(email, full_name, username, password, role) "
                 + "VALUES ('tech@yahoo.com', 'Michael Thomas', 'tech', 'tech', '3');\n";
         executeSQLStatement(sql);
-        
+
         sql = "INSERT INTO users(email, full_name, username, password, role) "
                 + "VALUES ('rad@outlook.com', 'Susan Harris', 'rad', 'rad', '4');\n";
         executeSQLStatement(sql);
-        
+
         sql = "INSERT INTO users(email, full_name, username, password, role) "
                 + "VALUES ('doc@gmail.com', 'Emily Moore', 'doc', 'doc', '5');\n";
         executeSQLStatement(sql);
-        
+
         sql = "INSERT INTO users(email, full_name, username, password, role) "
                 + "VALUES ('bill@zoho.com', 'Kevin Harte', 'bill', 'bill', '6');\n";
         executeSQLStatement(sql);
