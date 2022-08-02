@@ -273,7 +273,7 @@ public class PatientPortal extends Stage{
             App.patient.setAddress(addressTxt.getText());
             App.patient.setEmail(emailTxt.getText());
             App.patient.setInsurance(insuranceTxt.getText());
-            String sql = "UPDATE patients SET username = '" + usernameTxt.getText() + ",, email = '" + emailTxt.getText() + "', address = '" + addressTxt.getText() + "', insurance = '" + insuranceTxt.getText() + "' WHERE patientID = '" + App.patient.getPatientID() + "';";
+            String sql = "UPDATE patients SET username = '" + usernameTxt.getText() + "', email = '" + emailTxt.getText() + "', address = '" + addressTxt.getText() + "', insurance = '" + insuranceTxt.getText() + "' WHERE patientID = '" + App.patient.getPatientID() + "';";
             App.executeSQLStatement(sql);
             x.close();
         });
@@ -581,7 +581,7 @@ public class PatientPortal extends Stage{
         return value;
     }
     
-    private void viewRadiologyReport(Patient z, Appointment appt) {
+    private void viewRadiologyReport(Appointment appt) {
         Stage x = new Stage();
         x.initOwner(this);
         x.setTitle("View Radiology Report");
@@ -687,7 +687,7 @@ public class PatientPortal extends Stage{
                         x.placeholder.setId("complete");
                     }
                     x.placeholder.setOnAction((ActionEvent e) -> {
-                        viewRadiologyReport(App.patient, x);
+                        viewRadiologyReport(x);
                     });
 
                 } else {
